@@ -1,0 +1,43 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+      "@iesl/ai": [
+        "../../packages/ai/src/index.ts"
+      ],
+      "@iesl/ai/*": [
+        "../../packages/ai/src/*"
+      ],
+      "@iesl/ui": [
+        "../../packages/ui/src/index.ts"
+      ],
+      "@iesl/ui/*": [
+        "../../packages/ui/src/*"
+      ],
+      "@iesl/data": [
+        "../../packages/data/src/index.ts"
+      ],
+      "@iesl/data/*": [
+        "../../packages/data/src/*"
+      ]
+    },
+    "allowJs": true
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

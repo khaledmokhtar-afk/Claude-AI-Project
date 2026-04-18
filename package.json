@@ -1,0 +1,17 @@
+{
+  "name": "iesl-ai-suite",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Three AI products for the IESL AI Workshop: RiskLens, ScopeSmith, EstimatorAI",
+  "scripts": {
+    "dev:risk": "pnpm --filter risk-lens dev",
+    "dev:scope": "pnpm --filter scope-smith dev",
+    "dev:estimator": "pnpm --filter estimator-ai dev",
+    "build": "pnpm -r build",
+    "clean": "rm -rf apps/*/.next apps/*/node_modules packages/*/node_modules node_modules"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20"
+  }
+}
