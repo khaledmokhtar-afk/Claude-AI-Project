@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 
-const STORAGE_KEY = "iesl:workspace:v3";
+const STORAGE_KEY = "iesl:workspace:v4";
 const PROJECTS_CAP = 20;
 const INPUT_BYTES_CAP = 3000;
 

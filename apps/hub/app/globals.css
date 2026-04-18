@@ -101,6 +101,15 @@ body {
   --color-accent: #F59E0B;
   --color-accent-soft: #FBBF24;
 }
+/* Unified project intelligence suite */
+[data-suite="project"] {
+  --suite-accent: #6366F1;
+  --suite-accent-soft: #10B981;
+  --color-primary: #6366F1;
+  --color-primary-soft: #818CF8;
+  --color-accent: #10B981;
+  --color-accent-soft: #34D399;
+}
 
 .glass {
   background: color-mix(in srgb, var(--color-surface) 75%, transparent);
