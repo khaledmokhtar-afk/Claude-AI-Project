@@ -21,7 +21,7 @@ const APP_LABELS: Record<SuiteApp, string> = {
 export function ClaudePanel({ apiKeyPresent }: { apiKeyPresent: boolean }) {
   const pathname = usePathname() ?? "/suite/scope";
   const activeApp = activeAppFromPath(pathname);
-  const { workspace, mode } = useWorkspace();
+  const { workspace } = useWorkspace();
 
   const [open, setOpen] = useState(true);
   const [input, setInput] = useState("");
@@ -36,37 +36,18 @@ export function ClaudePanel({ apiKeyPresent }: { apiKeyPresent: boolean }) {
 
   const send = useCallback(async () => {
     const prompt = input.trim();
-    if (!prompt || streaming) return;
+    if (!prompt || streaming || !apiKeyPresent) return;
 
     const nextMessages: ChatMessage[] = [...messages, { role: "user", content: prompt }];
     setMessages(nextMessages);
     setInput("");
     setStreaming(true);
-
-    // Placeholder assistant message we grow as tokens arrive.
     setMessages((m) => [...m, { role: "assistant", content: "" }]);
 
     const ctrl = new AbortController();
     abortRef.current = ctrl;
 
     try {
-      if (mode === "demo" || !apiKeyPresent) {
-        const canned = demoReply(activeApp, workspace);
-        for (const chunk of canned) {
-          if (ctrl.signal.aborted) break;
-          await new Promise((r) => setTimeout(r, 18));
-          setMessages((m) => {
-            const copy = [...m];
-            copy[copy.length - 1] = {
-              role: "assistant",
-              content: copy[copy.length - 1].content + chunk,
-            };
-            return copy;
-          });
-        }
-        return;
-      }
-
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -110,7 +91,7 @@ export function ClaudePanel({ apiKeyPresent }: { apiKeyPresent: boolean }) {
       setStreaming(false);
       abortRef.current = null;
     }
-  }, [input, messages, mode, apiKeyPresent, activeApp, workspace, streaming]);
+  }, [input, messages, apiKeyPresent, activeApp, workspace, streaming]);
 
   const stop = () => abortRef.current?.abort();
 
@@ -139,9 +120,11 @@ export function ClaudePanel({ apiKeyPresent }: { apiKeyPresent: boolean }) {
           ⚡
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold leading-tight">Claude workspace chat</div>
-          <div className="text-[11px] text-[var(--color-text-muted)]">
-            Context: {APP_LABELS[activeApp]} · {mode === "ai" ? "AI Mode" : "Demo Mode"}
+          <div className="text-sm font-semibold leading-tight font-display tracking-tight">
+            Claude workspace chat
+          </div>
+          <div className="text-[11px] text-[var(--color-text-muted)] uppercase tracking-[0.14em]">
+            {APP_LABELS[activeApp]} · {apiKeyPresent ? "Live" : "Offline"}
           </div>
         </div>
         <button
@@ -154,7 +137,17 @@ export function ClaudePanel({ apiKeyPresent }: { apiKeyPresent: boolean }) {
       </div>
 
       <div ref={scrollRef} className="flex-1 overflow-auto px-4 py-4 space-y-4">
-        {messages.length === 0 && (
+        {!apiKeyPresent && (
+          <div className="text-xs leading-relaxed space-y-3 p-4 rounded-lg glass glow-critical">
+            <div className="font-semibold text-white">Claude is offline</div>
+            <p className="text-[var(--color-text-muted)]">
+              Add <code className="font-mono text-white">ANTHROPIC_API_KEY</code> to{" "}
+              <code className="font-mono text-white">apps/hub/.env.local</code> and restart{" "}
+              <code className="font-mono text-white">pnpm dev</code> to enable streaming.
+            </p>
+          </div>
+        )}
+        {apiKeyPresent && messages.length === 0 && (
           <div className="text-xs text-[var(--color-text-muted)] leading-relaxed space-y-2">
             <p>
               Ask Claude about the current {APP_LABELS[activeApp]} workspace. It sees whatever scope,
@@ -195,12 +188,13 @@ export function ClaudePanel({ apiKeyPresent }: { apiKeyPresent: boolean }) {
               }
             }}
             rows={2}
+            disabled={!apiKeyPresent}
             placeholder={
-              mode === "ai" && apiKeyPresent
+              apiKeyPresent
                 ? "Ask Claude about this workspace…"
-                : "Demo Mode — replies are canned"
+                : "Set ANTHROPIC_API_KEY to enable chat"
             }
-            className="flex-1 text-sm p-2 rounded-md bg-black/30 border border-white/10 resize-none focus:outline-none focus:border-[var(--color-scope)]"
+            className="flex-1 text-sm p-2 rounded-md bg-black/30 border border-white/10 resize-none focus:outline-none focus:border-[var(--color-scope)] disabled:opacity-50"
           />
           {streaming ? (
             <button
@@ -212,7 +206,7 @@ export function ClaudePanel({ apiKeyPresent }: { apiKeyPresent: boolean }) {
           ) : (
             <button
               onClick={send}
-              disabled={!input.trim()}
+              disabled={!input.trim() || !apiKeyPresent}
               className="px-3 py-2 text-xs font-semibold rounded-md disabled:opacity-40"
               style={{ background: "var(--color-estimator)", color: "#0B1120" }}
             >
@@ -226,26 +220,4 @@ export function ClaudePanel({ apiKeyPresent }: { apiKeyPresent: boolean }) {
       </div>
     </aside>
   );
-}
-
-function demoReply(app: SuiteApp, workspace: ReturnType<typeof useWorkspace>["workspace"]): string[] {
-  const lines: string[] = [];
-  lines.push(`Demo Mode summary for ${APP_LABELS[app]}:\n\n`);
-  if (workspace.scope) {
-    lines.push(`• Scope loaded — "${workspace.scope.projectName}". ${workspace.scope.summary}\n`);
-  }
-  if (workspace.wbs) {
-    lines.push(`• WBS has ${workspace.wbs.tasks.length} tasks. Critical path spans ${workspace.wbs.tasks.filter((t) => t.critical).length} items.\n`);
-  }
-  if (workspace.risks) {
-    lines.push(`• ${workspace.risks.newRisks.length} new risks detected. Portfolio insight: ${workspace.risks.portfolioInsight}\n`);
-  }
-  if (workspace.estimate) {
-    lines.push(`• P50 cost USD ${workspace.estimate.costUSDm.likely.toFixed(1)}m; contingency ${workspace.estimate.contingencyPct}%.\n`);
-  }
-  if (lines.length === 1) {
-    lines.push("No workspace data yet. Switch to AI Mode or run a flow in one of the three tabs to seed context.");
-  }
-  // Break into chunks so the UI looks like it's streaming.
-  return lines.flatMap((l) => l.match(/.{1,18}/g) ?? [l]);
 }

@@ -1,27 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Mode, StreamState } from "./types";
-
-/**
- * Persists the Demo/AI mode choice in localStorage so attendees see a
- * consistent experience across tabs and refreshes.
- */
-export function useMode(defaultMode: Mode = "demo"): [Mode, (m: Mode) => void] {
-  const [mode, setMode] = useState<Mode>(defaultMode);
-
-  useEffect(() => {
-    const stored = typeof window !== "undefined" ? window.localStorage.getItem("iesl:mode") : null;
-    if (stored === "demo" || stored === "ai") setMode(stored);
-  }, []);
-
-  const update = useCallback((m: Mode) => {
-    setMode(m);
-    if (typeof window !== "undefined") window.localStorage.setItem("iesl:mode", m);
-  }, []);
-
-  return [mode, update];
-}
+import type { StreamState } from "./types";
 
 /**
  * Consumes a text/event-stream from a Next.js API route where the server

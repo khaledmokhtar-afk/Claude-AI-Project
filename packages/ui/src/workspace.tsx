@@ -9,9 +9,10 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Mode } from "./types";
 
-const STORAGE_KEY = "iesl:workspace:v1";
+const STORAGE_KEY = "iesl:workspace:v2";
+const BACKLOG_CAP = 20;
+const INPUT_BYTES_CAP = 2048;
 
 export type SuiteApp = "risk" | "scope" | "estimator";
 
@@ -64,8 +65,32 @@ export type WorkspaceEstimate = {
   narrative: string;
 };
 
+export type Submission<T = unknown> = {
+  id: string;
+  kind: SuiteApp;
+  title: string;
+  input: string;
+  meta?: Record<string, string>;
+  output?: T;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type Backlog = {
+  risk: Submission[];
+  scope: Submission[];
+  estimator: Submission[];
+};
+
+export type ActiveMap = {
+  risk?: string;
+  scope?: string;
+  estimator?: string;
+};
+
 export type Workspace = {
-  mode: Mode;
+  backlog: Backlog;
+  active: ActiveMap;
   scope?: WorkspaceScope;
   wbs?: WorkspaceWBS;
   risks?: WorkspaceRisks;
@@ -74,8 +99,18 @@ export type Workspace = {
 
 type Ctx = {
   workspace: Workspace;
-  mode: Mode;
-  setMode: (m: Mode) => void;
+  backlog: Backlog;
+  active: ActiveMap;
+  activeSubmission: (kind: SuiteApp) => Submission | undefined;
+  createSubmission: (
+    kind: SuiteApp,
+    input: string,
+    meta?: Record<string, string>,
+  ) => Submission;
+  setActive: (kind: SuiteApp, id: string | undefined) => void;
+  updateSubmissionOutput: <T>(kind: SuiteApp, id: string, output: T) => void;
+  deleteSubmission: (kind: SuiteApp, id: string) => void;
+  clearActive: (kind: SuiteApp) => void;
   setScope: (s: WorkspaceScope | undefined) => void;
   setWBS: (w: WorkspaceWBS | undefined) => void;
   setRisks: (r: WorkspaceRisks | undefined) => void;
@@ -85,7 +120,27 @@ type Ctx = {
 
 const WorkspaceContext = createContext<Ctx | null>(null);
 
-const DEFAULT: Workspace = { mode: "demo" };
+const EMPTY_BACKLOG: Backlog = { risk: [], scope: [], estimator: [] };
+
+const DEFAULT: Workspace = {
+  backlog: EMPTY_BACKLOG,
+  active: {},
+};
+
+function titleOf(input: string): string {
+  const firstLine = input.split("\n").find((l) => l.trim().length > 0) ?? "";
+  return firstLine.trim().slice(0, 80) || "Untitled submission";
+}
+
+function truncateInput(input: string): string {
+  if (input.length <= INPUT_BYTES_CAP) return input;
+  return input.slice(0, INPUT_BYTES_CAP);
+}
+
+function makeId(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  return `sub_${Math.random().toString(36).slice(2)}_${Date.now()}`;
+}
 
 function loadInitial(): Workspace {
   if (typeof window === "undefined") return DEFAULT;
@@ -94,7 +149,14 @@ function loadInitial(): Workspace {
     if (!raw) return DEFAULT;
     const parsed = JSON.parse(raw) as Partial<Workspace>;
     return {
-      mode: parsed.mode === "ai" ? "ai" : "demo",
+      backlog: {
+        risk: Array.isArray(parsed.backlog?.risk) ? parsed.backlog!.risk : [],
+        scope: Array.isArray(parsed.backlog?.scope) ? parsed.backlog!.scope : [],
+        estimator: Array.isArray(parsed.backlog?.estimator)
+          ? parsed.backlog!.estimator
+          : [],
+      },
+      active: parsed.active ?? {},
       scope: parsed.scope,
       wbs: parsed.wbs,
       risks: parsed.risks,
@@ -121,8 +183,69 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     }
   }, [workspace]);
 
-  const setMode = useCallback((m: Mode) => {
-    setWorkspace((w) => ({ ...w, mode: m }));
+  const createSubmission = useCallback(
+    (kind: SuiteApp, input: string, meta?: Record<string, string>) => {
+      const now = Date.now();
+      const sub: Submission = {
+        id: makeId(),
+        kind,
+        title: titleOf(input),
+        input: truncateInput(input),
+        meta,
+        createdAt: now,
+        updatedAt: now,
+      };
+      setWorkspace((w) => {
+        const next = [sub, ...w.backlog[kind]].slice(0, BACKLOG_CAP);
+        return {
+          ...w,
+          backlog: { ...w.backlog, [kind]: next },
+          active: { ...w.active, [kind]: sub.id },
+        };
+      });
+      return sub;
+    },
+    [],
+  );
+
+  const setActive = useCallback((kind: SuiteApp, id: string | undefined) => {
+    setWorkspace((w) => ({ ...w, active: { ...w.active, [kind]: id } }));
+  }, []);
+
+  const updateSubmissionOutput = useCallback(
+    <T,>(kind: SuiteApp, id: string, output: T) => {
+      setWorkspace((w) => ({
+        ...w,
+        backlog: {
+          ...w.backlog,
+          [kind]: w.backlog[kind].map((s) =>
+            s.id === id ? { ...s, output, updatedAt: Date.now() } : s,
+          ),
+        },
+      }));
+    },
+    [],
+  );
+
+  const deleteSubmission = useCallback((kind: SuiteApp, id: string) => {
+    setWorkspace((w) => {
+      const nextList = w.backlog[kind].filter((s) => s.id !== id);
+      const nextActive: ActiveMap = { ...w.active };
+      if (nextActive[kind] === id) delete nextActive[kind];
+      return {
+        ...w,
+        backlog: { ...w.backlog, [kind]: nextList },
+        active: nextActive,
+      };
+    });
+  }, []);
+
+  const clearActive = useCallback((kind: SuiteApp) => {
+    setWorkspace((w) => {
+      const nextActive: ActiveMap = { ...w.active };
+      delete nextActive[kind];
+      return { ...w, active: nextActive };
+    });
   }, []);
 
   const setScope = useCallback((s: WorkspaceScope | undefined) => {
@@ -142,21 +265,49 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const reset = useCallback(() => {
-    setWorkspace({ mode: workspace.mode });
-  }, [workspace.mode]);
+    setWorkspace(DEFAULT);
+  }, []);
+
+  const activeSubmission = useCallback(
+    (kind: SuiteApp) => {
+      const id = workspace.active[kind];
+      if (!id) return undefined;
+      return workspace.backlog[kind].find((s) => s.id === id);
+    },
+    [workspace.active, workspace.backlog],
+  );
 
   const value = useMemo<Ctx>(
     () => ({
       workspace,
-      mode: workspace.mode,
-      setMode,
+      backlog: workspace.backlog,
+      active: workspace.active,
+      activeSubmission,
+      createSubmission,
+      setActive,
+      updateSubmissionOutput,
+      deleteSubmission,
+      clearActive,
       setScope,
       setWBS,
       setRisks,
       setEstimate,
       reset,
     }),
-    [workspace, setMode, setScope, setWBS, setRisks, setEstimate, reset],
+    [
+      workspace,
+      activeSubmission,
+      createSubmission,
+      setActive,
+      updateSubmissionOutput,
+      deleteSubmission,
+      clearActive,
+      setScope,
+      setWBS,
+      setRisks,
+      setEstimate,
+      reset,
+    ],
   );
 
   return (

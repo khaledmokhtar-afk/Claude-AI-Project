@@ -1,6 +1,6 @@
-import type { DemoWBSNode } from "@iesl/data";
+import type { WBSNode } from "@iesl/data";
 
-export type ScheduledTask = DemoWBSNode & {
+export type ScheduledTask = WBSNode & {
   start: number;
   end: number;
   depth: number;
@@ -18,7 +18,7 @@ export type Schedule = {
  * CPM-style forward pass over the WBS. "depth" is derived from id structure
  * ("1", "1.1", "1.1.1"…) so the UI can indent the tree correctly.
  */
-export function computeSchedule(tasks: DemoWBSNode[], start = new Date()): Schedule {
+export function computeSchedule(tasks: WBSNode[], start = new Date()): Schedule {
   const byId: Record<string, ScheduledTask> = {};
 
   const sorted = [...tasks].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));

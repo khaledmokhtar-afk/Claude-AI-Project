@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useWorkspace } from "@iesl/ui";
 import type { ReactNode } from "react";
 
 type TabDef = {
@@ -29,8 +28,6 @@ export function Shell({
   side?: ReactNode;
 }) {
   const pathname = usePathname() ?? "";
-  const { mode, setMode } = useWorkspace();
-  const aiDisabled = !apiKeyPresent;
   const activeTab =
     TABS.find((t) => pathname.startsWith(t.href))?.id ?? "scope";
 
@@ -45,7 +42,7 @@ export function Shell({
             <span className="w-7 h-7 rounded-md flex items-center justify-center glass text-[11px]">
               IE
             </span>
-            <span className="hidden sm:inline">IESL AI Suite</span>
+            <span className="hidden sm:inline font-display tracking-tight">IESL AI Suite</span>
           </Link>
 
           <nav className="flex items-center gap-1 overflow-x-auto">
@@ -72,29 +69,27 @@ export function Shell({
             })}
           </nav>
 
-          <div className="ml-auto flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2 p-1 rounded-full glass">
-              <button
-                onClick={() => setMode("demo")}
-                className={`px-3 py-1 text-xs rounded-full transition-all font-medium ${
-                  mode === "demo" ? "bg-white/10 text-white" : "text-[var(--color-text-muted)]"
-                }`}
-              >
-                ● Demo Mode
-              </button>
-              <button
-                onClick={() => !aiDisabled && setMode("ai")}
-                disabled={aiDisabled}
-                title={aiDisabled ? "Set ANTHROPIC_API_KEY in .env.local to enable live AI" : ""}
-                className={`px-3 py-1 text-xs rounded-full transition-all font-medium ${
-                  mode === "ai" ? "text-[var(--color-bg)]" : "text-[var(--color-text-muted)]"
-                } ${aiDisabled ? "opacity-40 cursor-not-allowed" : ""}`}
+          <div className="ml-auto flex items-center gap-2">
+            <div
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full glass text-[11px] uppercase tracking-[0.18em] font-semibold"
+              title={
+                apiKeyPresent
+                  ? "ANTHROPIC_API_KEY detected — live Claude streaming"
+                  : "Set ANTHROPIC_API_KEY in apps/hub/.env.local to enable Claude"
+              }
+            >
+              <span
+                className="w-2 h-2 rounded-full"
                 style={{
-                  background: mode === "ai" ? "var(--color-estimator)" : "transparent",
+                  background: apiKeyPresent ? "var(--color-estimator-soft)" : "var(--color-critical)",
+                  boxShadow: apiKeyPresent
+                    ? "0 0 10px 1px var(--color-estimator-soft)"
+                    : "0 0 10px 1px var(--color-critical)",
                 }}
-              >
-                ⚡ AI Mode
-              </button>
+              />
+              <span className="text-[var(--color-text-muted)]">
+                {apiKeyPresent ? "Claude · Live" : "Claude · Offline"}
+              </span>
             </div>
           </div>
         </div>

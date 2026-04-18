@@ -1,5 +1,4 @@
 import { streamText } from "@iesl/ai";
-import type { DemoProject } from "@iesl/data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,7 +11,7 @@ Narrate your predictive-model reasoning for an energy-sector project in Nigeria.
 - No markdown. No bullet characters.`;
 
 export async function POST(req: Request) {
-  const { project, count } = (await req.json()) as { project: DemoProject; count: number };
+  const { projectSummary } = (await req.json()) as { projectSummary: string };
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -20,10 +19,7 @@ export async function POST(req: Request) {
       try {
         for await (const chunk of streamText({
           system: NARRATE_SYSTEM,
-          user: `Project: ${project.name} in ${project.location}.
-Type: ${project.type}. Duration: ${project.durationMonths} months. Budget: USD ${project.budgetUSDm}m.
-Existing risk register has ${count} entries.
-Narrate your reasoning now.`,
+          user: `Project brief:\n${projectSummary}\n\nNarrate your reasoning now.`,
           mode: "fast",
           cacheSystem: true,
           maxTokens: 500,

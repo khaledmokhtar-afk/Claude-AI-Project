@@ -109,9 +109,9 @@ export function HubLanding({ urls }: { urls: HubUrls }) {
             All three apps live
           </span>
           <span>·</span>
-          <span>Demo Mode works offline</span>
+          <span>Streamed from Claude</span>
           <span>·</span>
-          <span>AI Mode streams from Claude</span>
+          <span>Your inputs, your backlog</span>
         </motion.div>
       </section>
 

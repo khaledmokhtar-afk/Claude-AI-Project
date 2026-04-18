@@ -9,7 +9,7 @@
   --color-text: #E2E8F0;
   --color-text-muted: #94A3B8;
 
-  /* Product accents used by the three workspace tabs. */
+  /* Per-tab accents */
   --color-risk: #DC2626;
   --color-risk-soft: #F87171;
   --color-scope: #2563EB;
@@ -18,9 +18,7 @@
   --color-estimator-soft: #34D399;
   --color-amber: #F59E0B;
 
-  /* Shared workspace tokens consumed by the ported RiskLens / ScopeSmith /
-     EstimatorAI components. Kept as neutral aliases over the product accents
-     so a given component styles correctly regardless of the active tab. */
+  /* Neutral aliases — live switched per-tab via [data-suite]. */
   --color-primary: #2563EB;
   --color-primary-soft: #60A5FA;
   --color-accent: #06B6D4;
@@ -30,8 +28,17 @@
   --color-danger: #EF4444;
   --color-neg: #EF4444;
 
-  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Heat scale for the RiskLens matrix. */
+  --color-heat-0: #0F172A;
+  --color-heat-1: #1E3A8A;
+  --color-heat-2: #7C2D12;
+  --color-heat-3: #B45309;
+  --color-heat-4: #DC2626;
+  --color-heat-5: #F87171;
+
+  --font-sans: var(--font-sans), Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  --font-mono: var(--font-mono), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-display: var(--font-display), "Instrument Serif", ui-serif, Georgia, "Times New Roman", serif;
 }
 
 html,
@@ -45,11 +52,54 @@ body {
 
 body {
   background-image:
-    radial-gradient(ellipse at 20% 0%, rgba(220, 38, 38, 0.14) 0, transparent 40%),
-    radial-gradient(ellipse at 80% 0%, rgba(37, 99, 235, 0.12) 0, transparent 40%),
-    radial-gradient(ellipse at 50% 100%, rgba(16, 185, 129, 0.12) 0, transparent 45%),
-    repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 64px),
-    repeating-linear-gradient(90deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 64px);
+    radial-gradient(ellipse at 20% 0%, rgba(220, 38, 38, 0.10) 0, transparent 45%),
+    radial-gradient(ellipse at 80% 0%, rgba(37, 99, 235, 0.10) 0, transparent 45%),
+    radial-gradient(ellipse at 50% 100%, rgba(16, 185, 129, 0.08) 0, transparent 45%);
+}
+
+/* Per-tab color story: a full-bleed mesh + grid behind the workspace. */
+[data-suite] {
+  position: relative;
+  isolation: isolate;
+}
+[data-suite]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background-image:
+    radial-gradient(circle at 15% 10%, color-mix(in srgb, var(--suite-accent) 22%, transparent), transparent 45%),
+    radial-gradient(circle at 85% 20%, color-mix(in srgb, var(--suite-accent-soft) 18%, transparent), transparent 50%),
+    radial-gradient(circle at 50% 100%, color-mix(in srgb, var(--suite-accent) 10%, transparent), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 56px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 56px);
+  opacity: 1;
+  transition: background-image 400ms ease-out;
+}
+[data-suite="risk"] {
+  --suite-accent: #DC2626;
+  --suite-accent-soft: #F87171;
+  --color-primary: #DC2626;
+  --color-primary-soft: #F87171;
+  --color-accent: #F59E0B;
+  --color-accent-soft: #FBBF24;
+}
+[data-suite="scope"] {
+  --suite-accent: #2563EB;
+  --suite-accent-soft: #60A5FA;
+  --color-primary: #2563EB;
+  --color-primary-soft: #60A5FA;
+  --color-accent: #06B6D4;
+  --color-accent-soft: #22D3EE;
+}
+[data-suite="estimator"] {
+  --suite-accent: #10B981;
+  --suite-accent-soft: #34D399;
+  --color-primary: #10B981;
+  --color-primary-soft: #34D399;
+  --color-accent: #F59E0B;
+  --color-accent-soft: #FBBF24;
 }
 
 .glass {
@@ -59,19 +109,114 @@ body {
   border-radius: 18px;
 }
 
+.glass-accent {
+  background: color-mix(in srgb, var(--color-surface) 75%, transparent);
+  backdrop-filter: blur(14px);
+  border: 1px solid color-mix(in srgb, var(--suite-accent, var(--color-primary)) 35%, var(--color-border));
+  border-radius: 18px;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--suite-accent, var(--color-primary)) 15%, transparent),
+    0 30px 60px -30px color-mix(in srgb, var(--suite-accent, var(--color-primary)) 45%, transparent);
+}
+
 .glow-primary {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 40%, transparent),
     0 0 24px -4px color-mix(in srgb, var(--color-primary) 60%, transparent);
 }
-
 .glow-accent {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 40%, transparent),
     0 0 18px -4px color-mix(in srgb, var(--color-accent) 50%, transparent);
 }
-
 .glow-critical {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-critical) 50%, transparent),
     0 0 16px -4px color-mix(in srgb, var(--color-critical) 70%, transparent);
+}
+.glow-suite {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--suite-accent, var(--color-primary)) 40%, transparent),
+    0 0 32px -6px color-mix(in srgb, var(--suite-accent, var(--color-primary)) 55%, transparent);
+}
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  font-size: 11px;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--suite-accent-soft, var(--color-primary-soft)) 90%, white 10%);
+}
+
+.btn-primary {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #05070F;
+  background: linear-gradient(
+    135deg,
+    var(--suite-accent, var(--color-primary)) 0%,
+    var(--suite-accent-soft, var(--color-primary-soft)) 100%
+  );
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--suite-accent, var(--color-primary)) 50%, transparent),
+    0 12px 36px -8px color-mix(in srgb, var(--suite-accent, var(--color-primary)) 60%, transparent);
+  transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 160ms;
+}
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--suite-accent, var(--color-primary)) 60%, transparent),
+    0 18px 44px -8px color-mix(in srgb, var(--suite-accent, var(--color-primary)) 80%, transparent);
+}
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.btn-primary:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 999px;
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-surface) 40%, transparent);
+  border: 1px solid var(--color-border);
+  transition: border-color 160ms, background 160ms;
+}
+.btn-ghost:hover {
+  border-color: color-mix(in srgb, var(--suite-accent, var(--color-primary)) 50%, var(--color-border));
+  background: color-mix(in srgb, var(--suite-accent, var(--color-primary)) 10%, var(--color-surface));
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--suite-accent-soft, var(--color-primary-soft)) 90%, white 10%);
+  background: color-mix(in srgb, var(--suite-accent, var(--color-primary)) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--suite-accent, var(--color-primary)) 25%, var(--color-border));
 }
 
 @keyframes pulse-ring {
@@ -96,9 +241,7 @@ body {
 @keyframes blink {
   50% { opacity: 0.2; }
 }
-.cursor-blink {
-  animation: blink 0.9s steps(2) infinite;
-}
+.cursor-blink { animation: blink 0.9s steps(2) infinite; }
 
 @keyframes shimmer {
   0% { background-position: -200% 0; }
@@ -122,6 +265,11 @@ body {
 .card-tilt {
   transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease;
 }
-.card-tilt:hover {
-  transform: translateY(-6px);
+.card-tilt:hover { transform: translateY(-6px); }
+
+@keyframes drift {
+  0%   { transform: translate3d(0, 0, 0); }
+  50%  { transform: translate3d(3%, -2%, 0); }
+  100% { transform: translate3d(0, 0, 0); }
 }
+.drift-slow { animation: drift 18s ease-in-out infinite; }

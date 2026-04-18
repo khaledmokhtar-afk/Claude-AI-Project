@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useWorkspace, type Mode } from "@iesl/ui";
+import { useWorkspace } from "@iesl/ui";
 import { findAnalogs, type HistoricalProject } from "@iesl/data";
-import { QueryPanel } from "./QueryPanel";
+import { Hero } from "../../../components/workspace/Hero";
+import { InputCard } from "../../../components/workspace/InputCard";
+import { BacklogStrip } from "../../../components/workspace/BacklogStrip";
+import { ApiKeyMissing } from "../../../components/workspace/ApiKeyMissing";
+import { ResultShell } from "../../../components/workspace/ResultShell";
 import { AnalogList } from "./AnalogList";
 import { EstimateCard } from "./EstimateCard";
 import { Tornado } from "./Tornado";
@@ -23,253 +27,223 @@ export type Estimate = {
   narrative: string;
 };
 
-const DEMO_QUERIES = [
-  {
-    id: "wellhead-4",
-    label: "4-well unmanned wellhead install, deepwater",
-    text: "Install a new unmanned wellhead platform in the OML 130 deepwater area with 4 subsea tie-ins. Pre-fabricated jacket and topsides, HLV lift, 2-well commissioning in campaign 1, 2-well in campaign 2.",
-  },
-  {
-    id: "pipeline-12",
-    label: "12km 20\" subsea crude pipeline, Niger Delta",
-    text: "Replace 12km of 20-inch subsea crude line in Niger Delta. Includes community engagement, NUPRC permit, 2 tie-in spools and hydrotest. Must be completed in one wet-season-adjacent window.",
-  },
-  {
-    id: "fpso-25yr",
-    label: "2.5-year FPSO class survey",
-    text: "2.5-year class survey on a mature FPSO. Scope: swivel inspection (on-station), ballast tank NDT, cargo manifold inspection, crane re-certification. No drydock.",
-  },
-];
-
 export function EstimatorAiWorkspace({
+  apiKeyPresent,
   historical,
 }: {
+  apiKeyPresent: boolean;
   historical: HistoricalProject[];
 }) {
-  const { mode, setEstimate } = useWorkspace();
+  const {
+    activeSubmission,
+    createSubmission,
+    updateSubmissionOutput,
+    clearActive,
+    setEstimate,
+  } = useWorkspace();
+  const submission = activeSubmission("estimator");
 
-  const [query, setQuery] = useState(DEMO_QUERIES[0].text);
-  const [selectedPreset, setSelectedPreset] = useState<string>(DEMO_QUERIES[0].id);
-  const [analogs, setAnalogs] = useState<HistoricalProject[]>(
-    findAnalogs(DEMO_QUERIES[0].text, 5),
-  );
-  const [estimate, setEstimateLocal] = useState<Estimate | null>(null);
   const [thinking, setThinking] = useState("");
-  const [isRunning, setIsRunning] = useState(false);
+  const [isWorking, setIsWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showReport, setShowReport] = useState(false);
 
+  const result = submission?.output as Estimate | undefined;
+  const analogs = useMemo(
+    () => (submission ? findAnalogs(submission.input, 5) : []),
+    [submission?.input],
+  );
+
+  const generateFor = useCallback(
+    async (id: string, text: string) => {
+      setError(null);
+      setThinking("");
+      setIsWorking(true);
+      const runAnalogs = findAnalogs(text, 5);
+      try {
+        const narrPromise = streamNarration(text, runAnalogs, setThinking);
+        const res = await fetch("/api/estimator/estimate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: text, analogs: runAnalogs }),
+        });
+        if (!res.ok) throw new Error((await res.text()) || "AI failed");
+        const data = (await res.json()) as Estimate;
+        await narrPromise;
+        updateSubmissionOutput<Estimate>("estimator", id, data);
+        setEstimate({ query: text, ...data });
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setIsWorking(false);
+      }
+    },
+    [updateSubmissionOutput, setEstimate],
+  );
+
   useEffect(() => {
-    setEstimateLocal(null);
     setThinking("");
     setError(null);
-    setIsRunning(false);
-    if (mode === "ai") {
-      setQuery("");
-      setSelectedPreset("");
-      setAnalogs([]);
-    } else {
-      setQuery(DEMO_QUERIES[0].text);
-      setSelectedPreset(DEMO_QUERIES[0].id);
-      setAnalogs(findAnalogs(DEMO_QUERIES[0].text, 5));
+    if (submission && !submission.output) {
+      void generateFor(submission.id, submission.input);
     }
-  }, [mode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submission?.id]);
 
-  const selectPreset = (id: string) => {
-    const q = DEMO_QUERIES.find((x) => x.id === id);
-    if (!q) return;
-    setSelectedPreset(id);
-    setQuery(q.text);
-    setAnalogs(findAnalogs(q.text, 5));
-    setEstimateLocal(null);
-    setThinking("");
-  };
-
-  const onQueryChange = (text: string) => {
-    setQuery(text);
-    setSelectedPreset("");
-    setAnalogs(findAnalogs(text, 5));
-  };
-
-  const runEstimate = async () => {
-    setError(null);
-    setEstimateLocal(null);
-    setThinking("");
-    setIsRunning(true);
-
-    if (mode === "demo") {
-      await animate(
-        [
-          "Embedding new scope…",
-          "Searching historical corpus (40 projects)…",
-          `→ Matched ${analogs.length} analogs by type, size, and tags.`,
-          "Reasoning on outcome deltas between analogs and new scope…",
-          "Drafting low / likely / high bounds…",
-          "Producing swing factors…",
-        ].join("\n"),
-        setThinking,
-      );
-      const demo = buildDemoEstimate(selectedPreset || "wellhead-4");
-      setEstimateLocal(demo);
-      setEstimate({ query, ...demo });
-      setIsRunning(false);
-      return;
-    }
-
-    try {
-      const narrPromise = streamNarration(query, analogs, setThinking);
-      const res = await fetch("/api/estimator/estimate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, analogs }),
-      });
-      if (!res.ok) throw new Error((await res.text()) || "AI failed");
-      const data = (await res.json()) as Estimate;
-      await narrPromise;
-      setEstimateLocal(data);
-      setEstimate({ query, ...data });
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setIsRunning(false);
-    }
+  const handleSubmit = (text: string, meta: Record<string, string>) => {
+    const sub = createSubmission("estimator", text, meta);
+    void generateFor(sub.id, text);
   };
 
   const takeHomeUrl = useMemo(() => {
-    if (!estimate) return null;
-    const blob = new Blob([buildTakeHomeHtml(query, estimate, analogs)], { type: "text/html" });
+    if (!result || !submission) return null;
+    const blob = new Blob(
+      [buildTakeHomeHtml(submission.input, result, analogs)],
+      { type: "text/html" },
+    );
     return URL.createObjectURL(blob);
-  }, [estimate, query, analogs]);
+  }, [result, submission?.input, analogs]);
+
+  if (!apiKeyPresent) {
+    return (
+      <div className="relative min-h-[90vh] px-6">
+        <Hero
+          eyebrow="Estimator AI"
+          title="Price the unknown with confidence bands."
+          subtitle="Describe the project and Claude draws on the analog corpus to produce low / likely / high bounds, contingency rationale, and swing factors."
+        />
+        <ApiKeyMissing />
+      </div>
+    );
+  }
+
+  if (!submission) {
+    return (
+      <div className="relative min-h-[90vh] px-6 pb-14">
+        <Hero
+          eyebrow="Estimator AI"
+          title="Price the unknown with confidence bands."
+          subtitle="Describe the project and Claude draws on the analog corpus to produce low / likely / high bounds, contingency rationale, and swing factors."
+        />
+        <InputCard
+          kind="estimator"
+          placeholder="e.g. Install a new unmanned wellhead platform in OML 130 deepwater, 4 subsea tie-ins, pre-fabricated jacket and topsides, HLV lift, two commissioning campaigns…"
+          meta={[
+            {
+              kind: "select",
+              key: "class",
+              label: "Class",
+              options: ["Class 5", "Class 4", "Class 3", "Class 2"],
+            },
+            {
+              kind: "select",
+              key: "scale",
+              label: "Scale",
+              options: ["< $10m", "$10–50m", "$50–150m", "$150m+"],
+            },
+          ]}
+          onSubmit={handleSubmit}
+        />
+        <div className="max-w-3xl mx-auto mt-4 text-center text-xs text-[var(--color-text-muted)]">
+          {historical.length} analog projects indexed · retrieved live on Generate
+        </div>
+        <BacklogStrip kind="estimator" />
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-[1500px] mx-auto px-6 py-8">
-      <div className="grid grid-cols-1 xl:grid-cols-[380px_1fr] gap-6">
-        <QueryPanel
-          presets={DEMO_QUERIES}
-          selectedPresetId={selectedPreset}
-          query={query}
-          onSelectPreset={selectPreset}
-          onQueryChange={onQueryChange}
-          onRun={runEstimate}
-          isRunning={isRunning}
-          mode={mode as Mode}
-          historicalCount={historical.length}
-          matchedCount={analogs.length}
-        />
-
-        <div className="flex flex-col gap-6 min-h-[70vh]">
-          <AnimatePresence>
-            {thinking && !estimate && (
-              <motion.div
-                key="thinking"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="glass p-5"
-              >
-                <div className="text-xs uppercase tracking-wider text-[var(--color-primary-soft)] mb-2">
-                  Reasoning trace
-                </div>
-                <pre className="whitespace-pre-wrap text-sm font-[var(--font-mono)] text-[var(--color-text)]">
-                  {thinking}
-                  {isRunning && <span className="cursor-blink">▊</span>}
-                </pre>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <AnalogList analogs={analogs} />
-
-          {estimate ? (
+    <ResultShell
+      submission={submission}
+      streaming={isWorking}
+      onNewSession={() => {
+        clearActive("estimator");
+        setThinking("");
+        setError(null);
+      }}
+      onRegenerate={() => generateFor(submission.id, submission.input)}
+    >
+      <div className="flex flex-col gap-6 min-h-[60vh]">
+        <AnimatePresence mode="wait">
+          {thinking && !result && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex flex-col gap-6"
+              key="thinking"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="glass p-6 animate-fade-up"
             >
-              <EstimateCard estimate={estimate} query={query} />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <CostWaterfall estimate={estimate} />
-                <Tornado swing={estimate.swingFactors} baseCost={estimate.costUSDm.likely} />
-              </div>
-
-              <div className="glass p-5 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <div className="text-xs uppercase tracking-wider text-[var(--color-text-muted)] mb-1">
-                    Deliverables
-                  </div>
-                  <div className="text-sm">
-                    Export the full estimate, or download a take-home single-page estimator (LM11).
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  {takeHomeUrl && (
-                    <a
-                      href={takeHomeUrl}
-                      download={`iesl-takehome-estimator-${selectedPreset || "custom"}.html`}
-                      className="px-4 py-2 text-sm font-medium rounded-lg border border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10"
-                    >
-                      ⬇ Take-home Estimator (HTML)
-                    </a>
-                  )}
-                  <button
-                    onClick={() => setShowReport(true)}
-                    className="px-4 py-2 text-sm font-medium rounded-lg glow-primary"
-                    style={{ background: "var(--color-primary)", color: "var(--color-bg)" }}
-                  >
-                    Generate Executive Report →
-                  </button>
-                </div>
-              </div>
+              <div className="eyebrow mb-3">Reasoning trace</div>
+              <pre className="text-sm whitespace-pre-wrap font-mono leading-relaxed text-[var(--color-text-muted)]">
+                {thinking}
+                {isWorking && <span className="cursor-blink">▊</span>}
+              </pre>
             </motion.div>
-          ) : (
-            !thinking &&
-            !isRunning && (
-              <div className="glass p-10 text-center text-[var(--color-text-muted)]">
-                <div className="text-5xl mb-3">📊</div>
-                <h2 className="text-lg font-semibold text-[var(--color-text)]">Ready to estimate</h2>
-                <p className="text-sm max-w-md mx-auto mt-2">
-                  Pick a preset or enter your own brief. Top-5 analog projects are retrieved live from
-                  the historical corpus. Click <strong>Run estimate</strong> to produce bounds.
-                </p>
-              </div>
-            )
           )}
+        </AnimatePresence>
 
-          {error && (
-            <div
-              className="glass p-3 text-sm border-l-4"
-              style={{ borderLeftColor: "var(--color-danger)" }}
-            >
-              <strong style={{ color: "var(--color-danger)" }}>Error:</strong> {error}
+        <AnalogList analogs={analogs} />
+
+        {result && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col gap-6"
+          >
+            <EstimateCard estimate={result} query={submission.input} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <CostWaterfall estimate={result} />
+              <Tornado swing={result.swingFactors} baseCost={result.costUSDm.likely} />
             </div>
-          )}
-        </div>
+
+            <div className="glass-accent p-5 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="eyebrow mb-1">Deliverables</div>
+                <div className="text-sm text-[var(--color-text-muted)]">
+                  Export the full estimate, or download a take-home single-page estimator.
+                </div>
+              </div>
+              <div className="flex gap-2">
+                {takeHomeUrl && (
+                  <a
+                    href={takeHomeUrl}
+                    download={`iesl-estimator-${submission.id.slice(0, 8)}.html`}
+                    className="btn-ghost"
+                  >
+                    ⬇ Take-home (HTML)
+                  </a>
+                )}
+                <button
+                  onClick={() => setShowReport(true)}
+                  className="btn-primary"
+                >
+                  Executive Report →
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {error && (
+          <div
+            className="glass p-4 border-l-4 text-sm"
+            style={{ borderLeftColor: "var(--color-danger)" }}
+          >
+            <strong className="text-[var(--color-danger)]">Error:</strong> {error}
+          </div>
+        )}
       </div>
 
-      {showReport && estimate && (
+      {showReport && result && (
         <ExecutiveEstimateReport
-          estimate={estimate}
-          query={query}
+          estimate={result}
+          query={submission.input}
           analogs={analogs}
-          mode={mode as Mode}
           onClose={() => setShowReport(false)}
         />
       )}
-    </div>
+    </ResultShell>
   );
-}
-
-async function animate(text: string, setThinking: (t: string) => void) {
-  let i = 0;
-  await new Promise<void>((resolve) => {
-    const tick = () => {
-      if (i > text.length) return resolve();
-      setThinking(text.slice(0, i));
-      i += 3;
-      setTimeout(tick, 18);
-    };
-    tick();
-  });
 }
 
 async function streamNarration(
@@ -296,82 +270,6 @@ async function streamNarration(
     acc += decoder.decode(value, { stream: true });
     setThinking(acc);
   }
-}
-
-function buildDemoEstimate(presetId: string): Estimate {
-  const map: Record<string, Estimate> = {
-    "wellhead-4": {
-      projectType: "Unmanned Wellhead Platform Install",
-      durationMonths: { low: 7, likely: 9, high: 12 },
-      effortPersonMonths: { low: 300, likely: 380, high: 480 },
-      costUSDm: { low: 112.0, likely: 138.0, high: 172.0 },
-      contingencyPct: 14,
-      contingencyRationale: "Drawn from HLV slot-slip history and deepwater weather variance.",
-      assumptions: [
-        "Jacket and topsides pre-fabricated in Lagos yard on time",
-        "HLV lift window aligned with wet-season end",
-        "4 subsea tie-ins, no manifold works",
-        "IESL supplies offshore superintendent team",
-      ],
-      swingFactors: [
-        { label: "HLV slot slippage (4-8 weeks)", lowUSDm: -2, highUSDm: 14 },
-        { label: "Steel cost (-5% / +12%)", lowUSDm: -3, highUSDm: 8 },
-        { label: "Weather window variance", lowUSDm: -1, highUSDm: 6 },
-        { label: "Dive spread availability", lowUSDm: -1, highUSDm: 4 },
-        { label: "Permit timing", lowUSDm: 0, highUSDm: 3 },
-      ],
-      narrative:
-        "Based on H-006 (on-target) and H-008 (under-budget), a pre-fabricated jacket approach sets the P50 near USD 138m. H-007 is the principal downside anchor — its HLV slip added USD 22m of cost; mitigation through a secondary vessel option reduces P80 exposure by ~USD 6m.",
-    },
-    "pipeline-12": {
-      projectType: "Subsea Pipeline Replacement (wet-season)",
-      durationMonths: { low: 5, likely: 7, high: 10 },
-      effortPersonMonths: { low: 200, likely: 280, high: 380 },
-      costUSDm: { low: 38.0, likely: 52.0, high: 72.0 },
-      contingencyPct: 13,
-      contingencyRationale:
-        "Community and weather variance dominate; history shows 18-22 days exposure.",
-      assumptions: [
-        "12 km 20-inch replacement, no re-route",
-        "Community GMoU amendment signed by week 4",
-        "Lay-barge spread qualified for HS 2.5m",
-        "Hydrotest + MEG flush within final 10 days of window",
-      ],
-      swingFactors: [
-        { label: "Community access (GMoU)", lowUSDm: -1, highUSDm: 7 },
-        { label: "Lay-barge day-rate", lowUSDm: -2, highUSDm: 5 },
-        { label: "Weather window compression", lowUSDm: 0, highUSDm: 6 },
-        { label: "FX on imported line pipe", lowUSDm: -1.5, highUSDm: 4 },
-        { label: "Welder qualification backlog", lowUSDm: 0, highUSDm: 2 },
-      ],
-      narrative:
-        "H-012 (on-target, 18km) and H-014 (on-target, 8km) bracket the scale. H-011 (over-budget, 30km) warns on community risk — pre-signing the GMoU amendment saves ~USD 2.5m on the P80. Recommend 13% contingency.",
-    },
-    "fpso-25yr": {
-      projectType: "FPSO 2.5-year Class Survey",
-      durationMonths: { low: 2, likely: 3, high: 4 },
-      effortPersonMonths: { low: 180, likely: 230, high: 300 },
-      costUSDm: { low: 16.0, likely: 20.0, high: 26.0 },
-      contingencyPct: 11,
-      contingencyRationale:
-        "On-station work with a fairly narrow outcome distribution, balanced by tank-thickness risk.",
-      assumptions: [
-        "Swivel inspection remains on-station (no drydock)",
-        "Tank thickness findings within 10% of the 2020 baseline",
-        "Crane re-cert by OEM-approved independent party",
-        "Platform supply vessels available on call-off",
-      ],
-      swingFactors: [
-        { label: "Tank thickness findings", lowUSDm: 0, highUSDm: 4 },
-        { label: "Swivel seal condition", lowUSDm: 0, highUSDm: 5 },
-        { label: "Weather days lost", lowUSDm: -0.5, highUSDm: 2 },
-        { label: "Dive team cert expiry", lowUSDm: 0, highUSDm: 1.5 },
-      ],
-      narrative:
-        "H-001 and H-004 sit on either side of the P50. H-004's pre-qualified yard approach is the lever worth pulling; translating it here means pre-qualifying the inspection contractor 6 weeks earlier than typical.",
-    },
-  };
-  return map[presetId] ?? map["wellhead-4"];
 }
 
 function buildTakeHomeHtml(query: string, estimate: Estimate, analogs: HistoricalProject[]): string {
@@ -453,7 +351,7 @@ function buildTakeHomeHtml(query: string, estimate: Estimate, analogs: Historica
 </div>
 
 <div class="footer">
-  © International Energy Services Limited · Workshop LM11 deliverable · Synthetic data · Generated by EstimatorAI
+  © International Energy Services Limited · Generated by EstimatorAI · Claude
 </div>
 
 <script>

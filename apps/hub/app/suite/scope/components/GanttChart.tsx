@@ -2,10 +2,10 @@
 
 import { motion } from "framer-motion";
 import type { Schedule } from "../lib/schedule";
-import type { DemoWBSNode } from "@iesl/data";
+import type { WBSNode } from "@iesl/data";
 import { formatDay } from "../lib/schedule";
 
-export function GanttChart({ tasks, schedule }: { tasks: DemoWBSNode[]; schedule: Schedule }) {
+export function GanttChart({ tasks, schedule }: { tasks: WBSNode[]; schedule: Schedule }) {
   const sorted = [...tasks].sort((a, b) =>
     a.id.localeCompare(b.id, undefined, { numeric: true }),
   );
