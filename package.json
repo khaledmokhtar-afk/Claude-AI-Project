@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "description": "Three AI products for the IESL AI Workshop: RiskLens, ScopeSmith, EstimatorAI",
   "scripts": {
+    "dev:hub": "pnpm --filter iesl-hub dev",
     "dev:risk": "pnpm --filter risk-lens dev",
     "dev:scope": "pnpm --filter scope-smith dev",
     "dev:estimator": "pnpm --filter estimator-ai dev",

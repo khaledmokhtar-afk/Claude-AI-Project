@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useMode } from "@iesl/ui";
+import { useMode, type Mode } from "@iesl/ui";
 import type { DemoScopeTemplate, DemoWBSNode } from "@iesl/data";
 import { Header } from "./Header";
 import { ScopeInput } from "./ScopeInput";
@@ -25,7 +25,7 @@ export function Workspace({
   scopes: DemoScopeTemplate[];
   apiKeyPresent: boolean;
 }) {
-  const [mode, setMode] = useMode("demo");
+  const [mode, setModeRaw] = useMode("demo");
   const [selectedScopeId, setSelectedScopeId] = useState(scopes[0].id);
   const [scopeText, setScopeText] = useState(scopes[0].scope);
   const [result, setResult] = useState<WBSResult | null>(null);
@@ -33,6 +33,24 @@ export function Workspace({
   const [isWorking, setIsWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showReport, setShowReport] = useState(false);
+
+  const setMode = useCallback(
+    (next: Mode) => {
+      setModeRaw(next);
+      setResult(null);
+      setThinking("");
+      setError(null);
+      setIsWorking(false);
+      if (next === "ai") {
+        setSelectedScopeId("");
+        setScopeText("");
+      } else {
+        setSelectedScopeId(scopes[0].id);
+        setScopeText(scopes[0].scope);
+      }
+    },
+    [setModeRaw, scopes],
+  );
 
   const onSelectScope = (id: string) => {
     const s = scopes.find((x) => x.id === id);

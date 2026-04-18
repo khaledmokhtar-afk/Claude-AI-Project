@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useMode } from "@iesl/ui";
+import { useMode, type Mode } from "@iesl/ui";
 import { findAnalogs, HISTORICAL_PROJECTS, type HistoricalProject } from "@iesl/data";
 import { Header } from "./Header";
 import { QueryPanel } from "./QueryPanel";
@@ -49,7 +49,7 @@ export function EstimatorWorkspace({
   historical: HistoricalProject[];
   apiKeyPresent: boolean;
 }) {
-  const [mode, setMode] = useMode("demo");
+  const [mode, setModeRaw] = useMode("demo");
   const [query, setQuery] = useState(DEMO_QUERIES[0].text);
   const [selectedPreset, setSelectedPreset] = useState<string>(DEMO_QUERIES[0].id);
   const [analogs, setAnalogs] = useState<HistoricalProject[]>(
@@ -60,6 +60,26 @@ export function EstimatorWorkspace({
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showReport, setShowReport] = useState(false);
+
+  const setMode = useCallback(
+    (next: Mode) => {
+      setModeRaw(next);
+      setEstimate(null);
+      setThinking("");
+      setError(null);
+      setIsRunning(false);
+      if (next === "ai") {
+        setQuery("");
+        setSelectedPreset("");
+        setAnalogs([]);
+      } else {
+        setQuery(DEMO_QUERIES[0].text);
+        setSelectedPreset(DEMO_QUERIES[0].id);
+        setAnalogs(findAnalogs(DEMO_QUERIES[0].text, 5));
+      }
+    },
+    [setModeRaw],
+  );
 
   const selectPreset = (id: string) => {
     const q = DEMO_QUERIES.find((x) => x.id === id);

@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useMode } from "@iesl/ui";
+import { useMode, type Mode } from "@iesl/ui";
 import type { DemoProject, Risk } from "@iesl/data";
 import { Header } from "./Header";
 import { ProjectBar } from "./ProjectBar";
@@ -37,14 +37,28 @@ export function CommandCenter({
   risks: Risk[];
   apiKeyPresent: boolean;
 }) {
-  const [mode, setMode] = useMode("demo");
+  const [mode, setModeRaw] = useMode("demo");
   const [activeProjectId, setActiveProjectId] = useState(projects[0].id);
   const [selectedRiskId, setSelectedRiskId] = useState<string | null>(null);
   const [ai, setAi] = useState<AiPrediction | null>(null);
   const [aiThinking, setAiThinking] = useState("");
+  const [customBrief, setCustomBrief] = useState("");
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showReport, setShowReport] = useState(false);
+
+  const setMode = useCallback(
+    (next: Mode) => {
+      setModeRaw(next);
+      setAi(null);
+      setAiThinking("");
+      setError(null);
+      setIsRunning(false);
+      setSelectedRiskId(null);
+      setCustomBrief("");
+    },
+    [setModeRaw],
+  );
 
   const project = projects.find((p) => p.id === activeProjectId)!;
   const projectRisks = useMemo(
@@ -66,19 +80,24 @@ export function CommandCenter({
     }
 
     try {
+      const projectSummary = customBrief.trim()
+        ? customBrief.trim()
+        : `${project.name}: ${project.summary} (Location: ${project.location}, Duration: ${project.durationMonths}mo, Budget: USD ${project.budgetUSDm}m)`;
       const narration = streamNarration(project, projectRisks, setAiThinking);
       const jsonRes = await fetch("/api/predict-risks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          projectSummary: `${project.name}: ${project.summary} (Location: ${project.location}, Duration: ${project.durationMonths}mo, Budget: USD ${project.budgetUSDm}m)`,
-          existingRisks: projectRisks.map((r) => ({
-            title: r.title,
-            category: r.category,
-            likelihood: r.likelihood,
-            impact: r.impact,
-            status: r.status,
-          })),
+          projectSummary,
+          existingRisks: customBrief.trim()
+            ? []
+            : projectRisks.map((r) => ({
+                title: r.title,
+                category: r.category,
+                likelihood: r.likelihood,
+                impact: r.impact,
+                status: r.status,
+              })),
         }),
       });
       if (!jsonRes.ok) throw new Error((await jsonRes.text()) || "AI failed");
@@ -151,6 +170,24 @@ export function CommandCenter({
                 </span>
               )}
             </div>
+            {mode === "ai" && (
+              <div className="mb-3">
+                <label className="text-[10px] uppercase tracking-wider text-[var(--color-text-muted)]">
+                  Describe a new project (optional)
+                </label>
+                <textarea
+                  value={customBrief}
+                  onChange={(e) => setCustomBrief(e.target.value)}
+                  rows={4}
+                  placeholder="e.g. 18km shallow-water pipeline tie-in, wet season start, community-sensitive area..."
+                  className="mt-1 w-full text-xs p-2 rounded-md bg-black/30 border border-white/10 text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
+                />
+                <div className="text-[10px] text-[var(--color-text-muted)] mt-1">
+                  Leave blank to run against the selected project&apos;s risks.
+                </div>
+              </div>
+            )}
+
             <button
               onClick={runPrediction}
               disabled={isRunning}
