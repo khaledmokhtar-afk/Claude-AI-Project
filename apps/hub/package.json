@@ -9,8 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@iesl/ai": "workspace:*",
+    "@iesl/data": "workspace:*",
+    "@iesl/ui": "workspace:*",
     "framer-motion": "^11.11.0",
-    "next": "15.1.5",
+    "next": "15.1.11",
     "react": "19.0.0",
     "react-dom": "19.0.0"
   },

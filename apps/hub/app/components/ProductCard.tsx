@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import type { ComponentType, SVGProps } from "react";
 
 type Product = {
@@ -25,11 +26,10 @@ export function ProductCard({
   delay: number;
 }) {
   const Icon = product.icon;
+  const MotionLink = motion(Link);
   return (
-    <motion.a
+    <MotionLink
       href={href}
-      target="_blank"
-      rel="noopener noreferrer"
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay }}
@@ -133,10 +133,10 @@ export function ProductCard({
             <span className="text-base">→</span>
           </div>
           <span className="text-[10px] text-[var(--color-text-muted)] group-hover:text-white transition-colors">
-            Opens in new tab
+            Opens in this window
           </span>
         </div>
       </div>
-    </motion.a>
+    </MotionLink>
   );
 }
