@@ -1,22 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-
-type TabDef = {
-  id: "risk" | "scope" | "estimator";
-  name: string;
-  tagline: string;
-  accent: string;
-  href: string;
-};
-
-const TABS: TabDef[] = [
-  { id: "risk", name: "RiskLens", tagline: "Predictive risk intelligence", accent: "#DC2626", href: "/suite/risk" },
-  { id: "scope", name: "ScopeSmith", tagline: "Scope to WBS & Gantt", accent: "#2563EB", href: "/suite/scope" },
-  { id: "estimator", name: "EstimatorAI", tagline: "Analog-driven estimates", accent: "#10B981", href: "/suite/estimator" },
-];
 
 export function Shell({
   apiKeyPresent,
@@ -27,51 +12,31 @@ export function Shell({
   children: ReactNode;
   side?: ReactNode;
 }) {
-  const pathname = usePathname() ?? "";
-  const activeTab =
-    TABS.find((t) => pathname.startsWith(t.href))?.id ?? "scope";
-
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-40 border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-white/5 bg-[var(--color-bg)]/80 backdrop-blur">
         <div className="max-w-[1600px] mx-auto px-6 py-3 flex items-center gap-6">
           <Link
-            href="/"
-            className="flex items-center gap-2 text-sm font-semibold shrink-0 hover:opacity-80"
+            href="/suite"
+            className="flex items-center gap-2.5 text-sm font-semibold shrink-0 hover:opacity-90 transition-opacity"
           >
-            <span className="w-7 h-7 rounded-md flex items-center justify-center glass text-[11px]">
+            <span
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-bold text-white"
+              style={{ background: "linear-gradient(135deg, #6366F1 0%, #10B981 100%)" }}
+            >
               IE
             </span>
-            <span className="hidden sm:inline font-display tracking-tight">IESL AI Suite</span>
+            <div className="hidden sm:flex flex-col leading-tight">
+              <span className="font-display text-base tracking-tight">IESL Project Intelligence</span>
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                Powered by Claude
+              </span>
+            </div>
           </Link>
 
-          <nav className="flex items-center gap-1 overflow-x-auto">
-            {TABS.map((t) => {
-              const active = t.id === activeTab;
-              return (
-                <Link
-                  key={t.id}
-                  href={t.href}
-                  className="relative px-3 py-1.5 text-sm rounded-lg transition-colors"
-                  style={{
-                    color: active ? t.accent : "var(--color-text-muted)",
-                    background: active ? `${t.accent}15` : "transparent",
-                    border: active ? `1px solid ${t.accent}40` : "1px solid transparent",
-                  }}
-                  aria-current={active ? "page" : undefined}
-                >
-                  <span className="font-medium">{t.name}</span>
-                  <span className="hidden md:inline text-xs ml-2 opacity-70">
-                    {t.tagline}
-                  </span>
-                </Link>
-              );
-            })}
-          </nav>
-
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-3">
             <div
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full glass text-[11px] uppercase tracking-[0.18em] font-semibold"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/8 bg-white/[0.03] text-[11px] uppercase tracking-[0.18em] font-semibold"
               title={
                 apiKeyPresent
                   ? "ANTHROPIC_API_KEY detected — live Claude streaming"
@@ -81,10 +46,10 @@ export function Shell({
               <span
                 className="w-2 h-2 rounded-full"
                 style={{
-                  background: apiKeyPresent ? "var(--color-estimator-soft)" : "var(--color-critical)",
+                  background: apiKeyPresent ? "#10B981" : "#EF4444",
                   boxShadow: apiKeyPresent
-                    ? "0 0 10px 1px var(--color-estimator-soft)"
-                    : "0 0 10px 1px var(--color-critical)",
+                    ? "0 0 10px 1px rgba(16,185,129,0.6)"
+                    : "0 0 10px 1px rgba(239,68,68,0.6)",
                 }}
               />
               <span className="text-[var(--color-text-muted)]">
@@ -102,5 +67,3 @@ export function Shell({
     </div>
   );
 }
-
-export { TABS as SUITE_TABS };

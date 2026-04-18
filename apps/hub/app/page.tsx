@@ -1,10 +1,5 @@
-import { HubLanding } from "./components/HubLanding";
+import { redirect } from "next/navigation";
 
-export default function Page() {
-  const urls = {
-    risk: "/suite/risk",
-    scope: "/suite/scope",
-    estimator: "/suite/estimator",
-  };
-  return <HubLanding urls={urls} />;
+export default function RootPage() {
+  redirect("/suite");
 }

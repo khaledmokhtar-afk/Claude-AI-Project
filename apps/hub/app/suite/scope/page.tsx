@@ -1,6 +1,5 @@
-import { ScopeSmithWorkspace } from "./components/ScopeSmithWorkspace";
+import { redirect } from "next/navigation";
 
-export default function ScopePage() {
-  const apiKeyPresent = Boolean(process.env.ANTHROPIC_API_KEY);
-  return <ScopeSmithWorkspace apiKeyPresent={apiKeyPresent} />;
+export default function ScopeRedirect() {
+  redirect("/suite");
 }

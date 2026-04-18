@@ -10,11 +10,11 @@ import {
   type ReactNode,
 } from "react";
 
-const STORAGE_KEY = "iesl:workspace:v2";
-const BACKLOG_CAP = 20;
-const INPUT_BYTES_CAP = 2048;
+const STORAGE_KEY = "iesl:workspace:v3";
+const PROJECTS_CAP = 20;
+const INPUT_BYTES_CAP = 3000;
 
-export type SuiteApp = "risk" | "scope" | "estimator";
+// ── Shared cross-tab context (kept for Claude panel compat) ──────────────────
 
 export type WorkspaceScope = {
   projectName: string;
@@ -65,32 +65,82 @@ export type WorkspaceEstimate = {
   narrative: string;
 };
 
-export type Submission<T = unknown> = {
+// ── Unified project submission ────────────────────────────────────────────────
+
+export type ProjectMeta = {
+  sector?: string;
+  scale?: string;
+  horizon?: string;
+};
+
+export type WBSTask = {
   id: string;
-  kind: SuiteApp;
+  name: string;
+  durationDays: number;
+  critical?: boolean;
+  dependsOn?: string[];
+  resource?: string;
+};
+
+export type RiskItem = {
+  title: string;
+  category: string;
+  likelihood: number;
+  impact: number;
+  trend: string;
+  predicted30d: number;
+  predicted60d: number;
+  predicted90d: number;
+  description: string;
+  mitigation: string;
+};
+
+export type SwingFactor = {
+  label: string;
+  lowUSDm: number;
+  highUSDm: number;
+};
+
+export type ProjectAnalysis = {
+  projectName: string;
+  summary: string;
+  plan: {
+    projectName: string;
+    summary: string;
+    tasks: WBSTask[];
+  };
+  risks: {
+    newRisks: RiskItem[];
+    portfolioInsight: string;
+  };
+  estimate: {
+    projectType: string;
+    durationMonths: { low: number; likely: number; high: number };
+    effortPersonMonths: { low: number; likely: number; high: number };
+    costUSDm: { low: number; likely: number; high: number };
+    contingencyPct: number;
+    contingencyRationale: string;
+    assumptions: string[];
+    swingFactors: SwingFactor[];
+    narrative: string;
+  };
+};
+
+export type ProjectSubmission = {
+  id: string;
   title: string;
   input: string;
-  meta?: Record<string, string>;
-  output?: T;
+  meta: ProjectMeta;
+  analysis?: ProjectAnalysis;
   createdAt: number;
   updatedAt: number;
 };
 
-export type Backlog = {
-  risk: Submission[];
-  scope: Submission[];
-  estimator: Submission[];
-};
-
-export type ActiveMap = {
-  risk?: string;
-  scope?: string;
-  estimator?: string;
-};
+// ── Workspace state ──────────────────────────────────────────────────────────
 
 export type Workspace = {
-  backlog: Backlog;
-  active: ActiveMap;
+  projects: ProjectSubmission[];
+  activeId?: string;
   scope?: WorkspaceScope;
   wbs?: WorkspaceWBS;
   risks?: WorkspaceRisks;
@@ -99,18 +149,14 @@ export type Workspace = {
 
 type Ctx = {
   workspace: Workspace;
-  backlog: Backlog;
-  active: ActiveMap;
-  activeSubmission: (kind: SuiteApp) => Submission | undefined;
-  createSubmission: (
-    kind: SuiteApp,
-    input: string,
-    meta?: Record<string, string>,
-  ) => Submission;
-  setActive: (kind: SuiteApp, id: string | undefined) => void;
-  updateSubmissionOutput: <T>(kind: SuiteApp, id: string, output: T) => void;
-  deleteSubmission: (kind: SuiteApp, id: string) => void;
-  clearActive: (kind: SuiteApp) => void;
+  projects: ProjectSubmission[];
+  activeProject: ProjectSubmission | undefined;
+  createProject: (input: string, meta: ProjectMeta) => ProjectSubmission;
+  setActiveId: (id: string | undefined) => void;
+  updateAnalysis: (id: string, analysis: ProjectAnalysis) => void;
+  deleteProject: (id: string) => void;
+  clearActive: () => void;
+  // Claude panel compat
   setScope: (s: WorkspaceScope | undefined) => void;
   setWBS: (w: WorkspaceWBS | undefined) => void;
   setRisks: (r: WorkspaceRisks | undefined) => void;
@@ -120,26 +166,20 @@ type Ctx = {
 
 const WorkspaceContext = createContext<Ctx | null>(null);
 
-const EMPTY_BACKLOG: Backlog = { risk: [], scope: [], estimator: [] };
-
-const DEFAULT: Workspace = {
-  backlog: EMPTY_BACKLOG,
-  active: {},
-};
+const DEFAULT: Workspace = { projects: [] };
 
 function titleOf(input: string): string {
   const firstLine = input.split("\n").find((l) => l.trim().length > 0) ?? "";
-  return firstLine.trim().slice(0, 80) || "Untitled submission";
-}
-
-function truncateInput(input: string): string {
-  if (input.length <= INPUT_BYTES_CAP) return input;
-  return input.slice(0, INPUT_BYTES_CAP);
+  return firstLine.trim().slice(0, 80) || "Untitled project";
 }
 
 function makeId(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
-  return `sub_${Math.random().toString(36).slice(2)}_${Date.now()}`;
+  return `proj_${Math.random().toString(36).slice(2)}_${Date.now()}`;
+}
+
+function truncate(input: string): string {
+  return input.length <= INPUT_BYTES_CAP ? input : input.slice(0, INPUT_BYTES_CAP);
 }
 
 function loadInitial(): Workspace {
@@ -149,14 +189,8 @@ function loadInitial(): Workspace {
     if (!raw) return DEFAULT;
     const parsed = JSON.parse(raw) as Partial<Workspace>;
     return {
-      backlog: {
-        risk: Array.isArray(parsed.backlog?.risk) ? parsed.backlog!.risk : [],
-        scope: Array.isArray(parsed.backlog?.scope) ? parsed.backlog!.scope : [],
-        estimator: Array.isArray(parsed.backlog?.estimator)
-          ? parsed.backlog!.estimator
-          : [],
-      },
-      active: parsed.active ?? {},
+      projects: Array.isArray(parsed.projects) ? parsed.projects : [],
+      activeId: parsed.activeId,
       scope: parsed.scope,
       wbs: parsed.wbs,
       risks: parsed.risks,
@@ -179,73 +213,51 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(workspace));
     } catch {
-      // storage quota / private mode — silently ignore
+      // quota / private mode
     }
   }, [workspace]);
 
-  const createSubmission = useCallback(
-    (kind: SuiteApp, input: string, meta?: Record<string, string>) => {
-      const now = Date.now();
-      const sub: Submission = {
-        id: makeId(),
-        kind,
-        title: titleOf(input),
-        input: truncateInput(input),
-        meta,
-        createdAt: now,
-        updatedAt: now,
-      };
-      setWorkspace((w) => {
-        const next = [sub, ...w.backlog[kind]].slice(0, BACKLOG_CAP);
-        return {
-          ...w,
-          backlog: { ...w.backlog, [kind]: next },
-          active: { ...w.active, [kind]: sub.id },
-        };
-      });
-      return sub;
-    },
-    [],
-  );
-
-  const setActive = useCallback((kind: SuiteApp, id: string | undefined) => {
-    setWorkspace((w) => ({ ...w, active: { ...w.active, [kind]: id } }));
+  const createProject = useCallback((input: string, meta: ProjectMeta) => {
+    const now = Date.now();
+    const proj: ProjectSubmission = {
+      id: makeId(),
+      title: titleOf(input),
+      input: truncate(input),
+      meta,
+      createdAt: now,
+      updatedAt: now,
+    };
+    setWorkspace((w) => ({
+      ...w,
+      projects: [proj, ...w.projects].slice(0, PROJECTS_CAP),
+      activeId: proj.id,
+    }));
+    return proj;
   }, []);
 
-  const updateSubmissionOutput = useCallback(
-    <T,>(kind: SuiteApp, id: string, output: T) => {
-      setWorkspace((w) => ({
-        ...w,
-        backlog: {
-          ...w.backlog,
-          [kind]: w.backlog[kind].map((s) =>
-            s.id === id ? { ...s, output, updatedAt: Date.now() } : s,
-          ),
-        },
-      }));
-    },
-    [],
-  );
-
-  const deleteSubmission = useCallback((kind: SuiteApp, id: string) => {
-    setWorkspace((w) => {
-      const nextList = w.backlog[kind].filter((s) => s.id !== id);
-      const nextActive: ActiveMap = { ...w.active };
-      if (nextActive[kind] === id) delete nextActive[kind];
-      return {
-        ...w,
-        backlog: { ...w.backlog, [kind]: nextList },
-        active: nextActive,
-      };
-    });
+  const setActiveId = useCallback((id: string | undefined) => {
+    setWorkspace((w) => ({ ...w, activeId: id }));
   }, []);
 
-  const clearActive = useCallback((kind: SuiteApp) => {
-    setWorkspace((w) => {
-      const nextActive: ActiveMap = { ...w.active };
-      delete nextActive[kind];
-      return { ...w, active: nextActive };
-    });
+  const updateAnalysis = useCallback((id: string, analysis: ProjectAnalysis) => {
+    setWorkspace((w) => ({
+      ...w,
+      projects: w.projects.map((p) =>
+        p.id === id ? { ...p, analysis, updatedAt: Date.now() } : p,
+      ),
+    }));
+  }, []);
+
+  const deleteProject = useCallback((id: string) => {
+    setWorkspace((w) => ({
+      ...w,
+      projects: w.projects.filter((p) => p.id !== id),
+      activeId: w.activeId === id ? undefined : w.activeId,
+    }));
+  }, []);
+
+  const clearActive = useCallback(() => {
+    setWorkspace((w) => ({ ...w, activeId: undefined }));
   }, []);
 
   const setScope = useCallback((s: WorkspaceScope | undefined) => {
@@ -264,29 +276,22 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     setWorkspace((w) => ({ ...w, estimate: e }));
   }, []);
 
-  const reset = useCallback(() => {
-    setWorkspace(DEFAULT);
-  }, []);
+  const reset = useCallback(() => setWorkspace(DEFAULT), []);
 
-  const activeSubmission = useCallback(
-    (kind: SuiteApp) => {
-      const id = workspace.active[kind];
-      if (!id) return undefined;
-      return workspace.backlog[kind].find((s) => s.id === id);
-    },
-    [workspace.active, workspace.backlog],
+  const activeProject = useMemo(
+    () => workspace.projects.find((p) => p.id === workspace.activeId),
+    [workspace.projects, workspace.activeId],
   );
 
   const value = useMemo<Ctx>(
     () => ({
       workspace,
-      backlog: workspace.backlog,
-      active: workspace.active,
-      activeSubmission,
-      createSubmission,
-      setActive,
-      updateSubmissionOutput,
-      deleteSubmission,
+      projects: workspace.projects,
+      activeProject,
+      createProject,
+      setActiveId,
+      updateAnalysis,
+      deleteProject,
       clearActive,
       setScope,
       setWBS,
@@ -296,11 +301,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     }),
     [
       workspace,
-      activeSubmission,
-      createSubmission,
-      setActive,
-      updateSubmissionOutput,
-      deleteSubmission,
+      activeProject,
+      createProject,
+      setActiveId,
+      updateAnalysis,
+      deleteProject,
       clearActive,
       setScope,
       setWBS,
@@ -319,8 +324,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
 export function useWorkspace(): Ctx {
   const ctx = useContext(WorkspaceContext);
-  if (!ctx) {
-    throw new Error("useWorkspace must be used inside <WorkspaceProvider>");
-  }
+  if (!ctx) throw new Error("useWorkspace must be used inside <WorkspaceProvider>");
   return ctx;
 }

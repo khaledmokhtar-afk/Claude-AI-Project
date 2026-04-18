@@ -1,5 +1,6 @@
-import { redirect } from "next/navigation";
+import { ProjectWorkspace } from "./ProjectWorkspace";
 
-export default function SuiteIndex() {
-  redirect("/suite/scope");
+export default function SuitePage() {
+  const apiKeyPresent = Boolean(process.env.ANTHROPIC_API_KEY);
+  return <ProjectWorkspace apiKeyPresent={apiKeyPresent} />;
 }

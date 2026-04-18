@@ -1,8 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useAnimatedNumber } from "@iesl/ui";
-import type { Estimate } from "./EstimatorAiWorkspace";
+import { useAnimatedNumber, type ProjectAnalysis } from "@iesl/ui";
+
+type Estimate = ProjectAnalysis["estimate"];
 
 export function EstimateCard({ estimate, query }: { estimate: Estimate; query: string }) {
   const costLikely = useAnimatedNumber(estimate.costUSDm.likely, 900);

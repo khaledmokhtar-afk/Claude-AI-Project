@@ -1,7 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import type { Estimate } from "./EstimatorAiWorkspace";
+import type { ProjectAnalysis } from "@iesl/ui";
+
+type Estimate = ProjectAnalysis["estimate"];
 
 export function CostWaterfall({ estimate }: { estimate: Estimate }) {
   const p50 = estimate.costUSDm.likely;

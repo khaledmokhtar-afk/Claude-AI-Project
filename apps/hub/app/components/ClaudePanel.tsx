@@ -1,27 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
-import { useWorkspace, type SuiteApp } from "@iesl/ui";
+import { useWorkspace } from "@iesl/ui";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
-function activeAppFromPath(path: string): SuiteApp {
-  if (path.startsWith("/suite/risk")) return "risk";
-  if (path.startsWith("/suite/estimator")) return "estimator";
-  return "scope";
-}
-
-const APP_LABELS: Record<SuiteApp, string> = {
-  risk: "RiskLens",
-  scope: "ScopeSmith",
-  estimator: "EstimatorAI",
-};
-
 export function ClaudePanel({ apiKeyPresent }: { apiKeyPresent: boolean }) {
-  const pathname = usePathname() ?? "/suite/scope";
-  const activeApp = activeAppFromPath(pathname);
-  const { workspace } = useWorkspace();
+  const { workspace, activeProject } = useWorkspace();
 
   const [open, setOpen] = useState(true);
   const [input, setInput] = useState("");
@@ -53,8 +38,8 @@ export function ClaudePanel({ apiKeyPresent }: { apiKeyPresent: boolean }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: nextMessages,
-          activeApp,
           workspace,
+          activeProject,
         }),
         signal: ctrl.signal,
       });
@@ -91,7 +76,7 @@ export function ClaudePanel({ apiKeyPresent }: { apiKeyPresent: boolean }) {
       setStreaming(false);
       abortRef.current = null;
     }
-  }, [input, messages, apiKeyPresent, activeApp, workspace, streaming]);
+  }, [input, messages, apiKeyPresent, workspace, activeProject, streaming]);
 
   const stop = () => abortRef.current?.abort();
 
@@ -124,7 +109,8 @@ export function ClaudePanel({ apiKeyPresent }: { apiKeyPresent: boolean }) {
             Claude workspace chat
           </div>
           <div className="text-[11px] text-[var(--color-text-muted)] uppercase tracking-[0.14em]">
-            {APP_LABELS[activeApp]} · {apiKeyPresent ? "Live" : "Offline"}
+            {activeProject ? `${activeProject.title.slice(0, 30)} · ` : ""}
+            {apiKeyPresent ? "Live" : "Offline"}
           </div>
         </div>
         <button
@@ -150,8 +136,8 @@ export function ClaudePanel({ apiKeyPresent }: { apiKeyPresent: boolean }) {
         {apiKeyPresent && messages.length === 0 && (
           <div className="text-xs text-[var(--color-text-muted)] leading-relaxed space-y-2">
             <p>
-              Ask Claude about the current {APP_LABELS[activeApp]} workspace. It sees whatever scope,
-              WBS, risks, or estimates you have in progress, so responses stay grounded.
+              Ask Claude anything about the current project. It sees the plan, risks, and estimate
+              so responses stay grounded in your brief.
             </p>
             <p>Try:</p>
             <ul className="list-disc pl-4 space-y-1">
@@ -166,7 +152,7 @@ export function ClaudePanel({ apiKeyPresent }: { apiKeyPresent: boolean }) {
             <div
               className={`inline-block max-w-[90%] text-sm rounded-lg px-3 py-2 whitespace-pre-wrap ${
                 m.role === "user"
-                  ? "bg-[var(--color-scope)]/25 text-white"
+                  ? "bg-indigo-500/25 text-white"
                   : "bg-white/5 text-[var(--color-text)]"
               }`}
             >
@@ -191,10 +177,10 @@ export function ClaudePanel({ apiKeyPresent }: { apiKeyPresent: boolean }) {
             disabled={!apiKeyPresent}
             placeholder={
               apiKeyPresent
-                ? "Ask Claude about this workspace…"
+                ? "Ask Claude about this project…"
                 : "Set ANTHROPIC_API_KEY to enable chat"
             }
-            className="flex-1 text-sm p-2 rounded-md bg-black/30 border border-white/10 resize-none focus:outline-none focus:border-[var(--color-scope)] disabled:opacity-50"
+            className="flex-1 text-sm p-2 rounded-md bg-black/30 border border-white/10 resize-none focus:outline-none focus:border-emerald-400 disabled:opacity-50"
           />
           {streaming ? (
             <button
@@ -208,7 +194,7 @@ export function ClaudePanel({ apiKeyPresent }: { apiKeyPresent: boolean }) {
               onClick={send}
               disabled={!input.trim() || !apiKeyPresent}
               className="px-3 py-2 text-xs font-semibold rounded-md disabled:opacity-40"
-              style={{ background: "var(--color-estimator)", color: "#0B1120" }}
+              style={{ background: "#34D399", color: "#0B1120" }}
             >
               Send
             </button>

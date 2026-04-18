@@ -1,6 +1,5 @@
-import { RiskLensWorkspace } from "./components/RiskLensWorkspace";
+import { redirect } from "next/navigation";
 
-export default function RiskPage() {
-  const apiKeyPresent = Boolean(process.env.ANTHROPIC_API_KEY);
-  return <RiskLensWorkspace apiKeyPresent={apiKeyPresent} />;
+export default function RiskRedirect() {
+  redirect("/suite");
 }

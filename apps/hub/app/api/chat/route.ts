@@ -1,5 +1,5 @@
 import { streamText } from "@iesl/ai";
-import type { SuiteApp, Workspace } from "@iesl/ui";
+import type { ProjectSubmission, Workspace } from "@iesl/ui";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,61 +8,56 @@ type ChatMessage = { role: "user" | "assistant"; content: string };
 
 type Body = {
   messages: ChatMessage[];
-  activeApp: SuiteApp;
   workspace: Workspace;
+  activeProject?: ProjectSubmission;
 };
 
-const BASE_SYSTEM = `You are Claude, the shared AI assistant embedded in the IESL AI Suite — a three-product workspace (RiskLens, ScopeSmith, EstimatorAI) for Nigerian energy-sector projects.
-You always answer with the current workspace as context, so responses stay grounded in the user's actual scope, WBS, risks, or estimates.
+const BASE_SYSTEM = `You are Claude, the AI assistant embedded in the IESL Project Intelligence workspace — a unified tool for Nigerian energy-sector project managers, executives, and finance leads.
+The workspace shows one project at a time across three lenses: plan & schedule, risks & mitigation, cost & resources. You always answer grounded in the active project's data — never invent vessel names, analog project names, or day-rates.
 Tone: pragmatic, senior-consultant, non-promotional, no markdown, no bullet characters unless the user asks for them. Keep answers concise (under ~200 words) unless the user explicitly asks for depth.`;
 
-const APP_HINT: Record<SuiteApp, string> = {
-  risk:
-    "The user is currently in the RiskLens tab. Favour risk-register framing, L×I scoring, 30/60/90 forecasts, and portfolio insights.",
-  scope:
-    "The user is currently in the ScopeSmith tab. Favour WBS structure, critical-path reasoning, resource contention, and schedule risk.",
-  estimator:
-    "The user is currently in the EstimatorAI tab. Favour analog-driven reasoning, P50/P80 bands, contingency rationale, and swing-factor leverage.",
-};
-
-function renderWorkspace(w: Workspace): string {
+function renderActiveProject(p: ProjectSubmission | undefined): string {
+  if (!p) return "No project is currently active. The user is on the welcome screen.";
   const parts: string[] = [];
-  if (w.scope) {
-    parts.push(
-      `SCOPE: ${w.scope.projectName} — ${w.scope.summary}\nBrief:\n${w.scope.text.slice(0, 1200)}`,
-    );
+  parts.push(`PROJECT: ${p.title}`);
+  if (p.meta.sector) parts.push(`Sector: ${p.meta.sector}`);
+  if (p.meta.scale) parts.push(`Scale: ${p.meta.scale}`);
+  if (p.meta.horizon) parts.push(`Horizon: ${p.meta.horizon}`);
+  parts.push(`\nBRIEF:\n${p.input.slice(0, 1500)}`);
+
+  const a = p.analysis;
+  if (!a) {
+    parts.push("\nNo analysis generated yet — the project has just been submitted.");
+    return parts.join("\n");
   }
-  if (w.wbs) {
-    parts.push(
-      `WBS: ${w.wbs.projectName} — ${w.wbs.tasks.length} tasks, ${w.wbs.tasks.filter((t) => t.critical).length} critical.\nTop tasks: ${w.wbs.tasks
-        .slice(0, 10)
-        .map((t) => `${t.id} ${t.name} (${t.durationDays}d${t.critical ? ", critical" : ""})`)
-        .join("; ")}`,
-    );
-  }
-  if (w.risks) {
-    parts.push(
-      `RISKS (${w.risks.newRisks.length} new). Insight: ${w.risks.portfolioInsight}\nTop: ${w.risks.newRisks
-        .slice(0, 5)
-        .map((r) => `${r.category} — ${r.title} (L${r.likelihood}×I${r.impact})`)
-        .join("; ")}`,
-    );
-  }
-  if (w.estimate) {
-    parts.push(
-      `ESTIMATE: ${w.estimate.projectType}. Cost P50 USD ${w.estimate.costUSDm.likely}m (low ${w.estimate.costUSDm.low} / high ${w.estimate.costUSDm.high}). Contingency ${w.estimate.contingencyPct}% — ${w.estimate.contingencyRationale}. Top swings: ${w.estimate.swingFactors
-        .slice(0, 3)
-        .map((s) => `${s.label} (${s.lowUSDm}..+${s.highUSDm})`)
-        .join("; ")}.`,
-    );
-  }
-  return parts.length ? parts.join("\n\n") : "No workspace data yet. The user has not produced a scope, WBS, risks, or estimate.";
+
+  parts.push(`\nSUMMARY: ${a.summary}`);
+
+  parts.push(
+    `\nPLAN: ${a.plan.tasks.length} tasks, ${a.plan.tasks.filter((t) => t.critical).length} on critical path.\nTop tasks: ${a.plan.tasks
+      .slice(0, 10)
+      .map((t) => `${t.id} ${t.name} (${t.durationDays}d${t.critical ? ", critical" : ""})`)
+      .join("; ")}`,
+  );
+
+  parts.push(
+    `\nRISKS (${a.risks.newRisks.length}). Insight: ${a.risks.portfolioInsight}\nTop: ${a.risks.newRisks
+      .slice(0, 5)
+      .map((r) => `${r.category} — ${r.title} (L${r.likelihood}×I${r.impact})`)
+      .join("; ")}`,
+  );
+
+  parts.push(
+    `\nESTIMATE: ${a.estimate.projectType}. Cost P50 USD ${a.estimate.costUSDm.likely}m (low ${a.estimate.costUSDm.low} / high ${a.estimate.costUSDm.high}). Contingency ${a.estimate.contingencyPct}% — ${a.estimate.contingencyRationale}. Top swings: ${a.estimate.swingFactors
+      .slice(0, 3)
+      .map((s) => `${s.label} (${s.lowUSDm}..+${s.highUSDm})`)
+      .join("; ")}.`,
+  );
+
+  return parts.join("\n");
 }
 
 function renderTranscript(messages: ChatMessage[]): string {
-  // The /api/chat endpoint expects a single streamText() call; collapse the
-  // transcript into the user turn with clear role labels so the model can
-  // follow the conversation.
   return messages
     .map((m) => `${m.role === "user" ? "USER" : "ASSISTANT"}: ${m.content}`)
     .join("\n\n");
@@ -73,13 +68,9 @@ export async function POST(req: Request) {
   try {
     const body = (await req.json()) as Body;
     const messages = Array.isArray(body.messages) ? body.messages : [];
-    const activeApp: SuiteApp =
-      body.activeApp === "risk" || body.activeApp === "estimator" || body.activeApp === "scope"
-        ? body.activeApp
-        : "scope";
-    const workspace: Workspace = body.workspace ?? { mode: "ai" };
+    const activeProject = body.activeProject;
 
-    const system = `${BASE_SYSTEM}\n\n${APP_HINT[activeApp]}\n\nCURRENT WORKSPACE:\n${renderWorkspace(workspace)}`;
+    const system = `${BASE_SYSTEM}\n\nCURRENT PROJECT:\n${renderActiveProject(activeProject)}`;
     const user = renderTranscript(messages);
 
     const stream = new ReadableStream({
