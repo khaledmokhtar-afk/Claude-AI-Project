@@ -99,47 +99,51 @@ export default function Dashboard() {
 
   return (
     <main className="min-h-screen">
-      <div className="max-w-6xl mx-auto px-6 py-10">
-        <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        <header className="mb-10 flex flex-wrap items-start justify-between gap-6">
           <div className="min-w-0">
-            <div className="eyebrow mb-2">IESL · Project Intelligence · v2</div>
-            <h1
-              className="text-3xl leading-tight"
-              style={{ fontFamily: "var(--font-display), serif" }}
-            >
-              Analysis
+            <div className="eyebrow mb-3">Analysis</div>
+            <h1 className="text-4xl font-bold leading-tight text-slate-100 mb-3">
+              {brief.projectBrief.split(/[.\n]/)[0]}...
             </h1>
-            <p className="mt-2 text-sm text-white/60 max-w-2xl line-clamp-3">
+            <p className="text-sm text-slate-400 max-w-2xl line-clamp-2">
               {brief.projectBrief}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setRunId((n) => n + 1)} className="btn-ghost">
-              Re-run all
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setRunId((n) => n + 1)}
+              className="px-4 py-2 rounded-lg text-sm font-medium bg-slate-900 border border-slate-700 text-slate-300 hover:border-blue-500/40 hover:text-slate-100 transition"
+            >
+              ↻ Re-run
             </button>
             <button
               onClick={() => {
                 reset();
                 router.push("/");
               }}
-              className="btn-ghost"
+              className="px-4 py-2 rounded-lg text-sm font-medium bg-slate-900 border border-slate-700 text-slate-300 hover:border-blue-500/40 hover:text-slate-100 transition"
             >
-              New brief
+              ⊕ New brief
             </button>
           </div>
         </header>
 
-        <div className="mb-6 flex items-center gap-4 text-xs text-white/50">
-          <span>
-            {progress.ready}/{progress.total} panels ready
+        <div className="mb-8 flex items-center justify-between gap-4 p-4 rounded-lg bg-slate-900/50 border border-slate-700/50">
+          <div className="flex items-center gap-4 text-xs text-slate-400">
+            <span>
+              <span className="font-semibold text-slate-200">{progress.ready}/{progress.total}</span> panels
+            </span>
             {progress.failed > 0 && (
-              <span className="text-red-400 ml-2">· {progress.failed} failed</span>
+              <span className="text-red-400">· {progress.failed} failed</span>
             )}
-          </span>
-          {elapsedMs !== null && <span>total {(elapsedMs / 1000).toFixed(1)}s</span>}
+            {elapsedMs !== null && (
+              <span>· <span className="text-slate-300">{(elapsedMs / 1000).toFixed(1)}s</span></span>
+            )}
+          </div>
         </div>
 
-        <nav className="mb-6 flex gap-2">
+        <nav className="mb-8 flex gap-2 border-b border-slate-700/50">
           {TABS.map((t) => {
             const done = t.sections.every((s) => sections[s].status === "ready");
             const failed = t.sections.some((s) => sections[s].status === "failed");
@@ -147,10 +151,10 @@ export default function Dashboard() {
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
-                className={`px-4 py-2 rounded-xl text-sm transition border ${
+                className={`px-4 py-3 text-sm font-medium transition border-b-2 ${
                   activeTab === t.id
-                    ? "bg-white/[0.06] border-white/20 text-white"
-                    : "bg-transparent border-white/5 text-white/60 hover:border-white/15 hover:text-white/90"
+                    ? "border-blue-500 text-blue-400"
+                    : "border-transparent text-slate-400 hover:text-slate-300"
                 }`}
               >
                 {t.label}

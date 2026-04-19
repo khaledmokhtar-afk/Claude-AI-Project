@@ -48,16 +48,18 @@ export default function BriefForm({ onSubmit, disabled }: Props) {
   return (
     <form onSubmit={submit} className="space-y-6">
       <div>
-        <label className="eyebrow block mb-2">Project brief</label>
+        <label className="eyebrow block mb-3">Project brief</label>
         <textarea
           value={projectBrief}
           onChange={(e) => setProjectBrief(e.target.value)}
           placeholder="Describe the project in 2–5 sentences. Include scope, location, technical highlights, and any known constraints."
-          className="w-full min-h-[160px] rounded-xl bg-white/[0.02] border border-white/10 p-4 text-sm font-mono leading-relaxed focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/20 transition"
+          className="w-full min-h-[140px] rounded-xl bg-slate-950/50 border border-slate-700/50 px-4 py-3 text-sm leading-relaxed text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition"
           disabled={disabled}
         />
-        <div className="mt-1 text-xs text-white/40">
-          {projectBrief.trim().length} chars — minimum 40 to analyse.
+        <div className="mt-2 flex items-center justify-between text-xs">
+          <span className={projectBrief.trim().length >= 40 ? "text-emerald-400" : "text-slate-500"}>
+            {projectBrief.trim().length} chars {projectBrief.trim().length >= 40 ? "✓" : "— minimum 40"}
+          </span>
         </div>
       </div>
 
@@ -67,52 +69,54 @@ export default function BriefForm({ onSubmit, disabled }: Props) {
         <Select label="Horizon" value={horizon} onChange={setHorizon} options={HORIZON_OPTIONS} disabled={disabled} />
       </div>
 
-      <details className="group glass p-4">
-        <summary className="cursor-pointer text-sm text-white/70 hover:text-white transition flex items-center justify-between">
-          <span>Optional: budget ceiling, target date, constraints</span>
-          <span className="text-white/40 group-open:rotate-180 transition">▾</span>
+      <details className="group">
+        <summary className="cursor-pointer glass px-5 py-3 rounded-xl flex items-center justify-between hover:border-blue-500/40 transition">
+          <span className="text-sm font-medium text-slate-200">Optional: budget, deadline, constraints</span>
+          <span className="text-slate-500 group-open:rotate-180 transition">▼</span>
         </summary>
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="eyebrow block mb-2">Budget ceiling (USD M)</label>
-            <input
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="1"
-              value={budgetCeilingUSDm}
-              onChange={(e) => setBudgetCeiling(e.target.value)}
-              placeholder="e.g. 420"
-              className="w-full rounded-lg bg-white/[0.02] border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-indigo-500/60"
-              disabled={disabled}
-            />
+        <div className="mt-3 glass p-5 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="eyebrow block mb-2">Budget ceiling (USD M)</label>
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="1"
+                value={budgetCeilingUSDm}
+                onChange={(e) => setBudgetCeiling(e.target.value)}
+                placeholder="e.g. 420"
+                className="w-full rounded-lg bg-slate-950/50 border border-slate-700/50 px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 transition"
+                disabled={disabled}
+              />
+            </div>
+            <div>
+              <label className="eyebrow block mb-2">Target completion</label>
+              <input
+                type="date"
+                value={targetCompletionISO}
+                onChange={(e) => setTarget(e.target.value)}
+                className="w-full rounded-lg bg-slate-950/50 border border-slate-700/50 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 transition"
+                disabled={disabled}
+              />
+            </div>
           </div>
           <div>
-            <label className="eyebrow block mb-2">Target completion</label>
-            <input
-              type="date"
-              value={targetCompletionISO}
-              onChange={(e) => setTarget(e.target.value)}
-              className="w-full rounded-lg bg-white/[0.02] border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-indigo-500/60"
-              disabled={disabled}
-            />
-          </div>
-          <div className="sm:col-span-2">
             <label className="eyebrow block mb-2">Constraints / context</label>
             <textarea
               value={constraints}
               onChange={(e) => setConstraints(e.target.value)}
               placeholder="Regulatory regime, local content quotas, weather windows, partner agreements, …"
-              className="w-full min-h-[70px] rounded-lg bg-white/[0.02] border border-white/10 p-3 text-sm focus:outline-none focus:border-indigo-500/60"
+              className="w-full min-h-[80px] rounded-lg bg-slate-950/50 border border-slate-700/50 p-3 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 transition"
               disabled={disabled}
             />
           </div>
         </div>
       </details>
 
-      <div className="flex justify-end pt-2">
+      <div className="flex justify-end pt-4">
         <button type="submit" disabled={!canSubmit} className="btn-primary">
-          Analyse with Claude
+          Analyse with Claude →
         </button>
       </div>
     </form>
@@ -138,10 +142,11 @@ function Select({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg bg-white/[0.02] border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-indigo-500/60"
+        className="w-full rounded-lg bg-slate-950/50 border border-slate-700/50 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 transition appearance-none"
+        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M1 4l5 4 5-4'/%3E%3C/svg%3E")`, backgroundPosition: 'right 8px center', backgroundRepeat: 'no-repeat', paddingRight: '28px' }}
         disabled={disabled}
       >
-        <option value="">—</option>
+        <option value="">— Select {label.toLowerCase()}</option>
         {options.map((o) => (
           <option key={o} value={o}>
             {o}
