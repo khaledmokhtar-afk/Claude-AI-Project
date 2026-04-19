@@ -19,10 +19,24 @@ type PlanShape = {
   projectName?: string;
   summary?: string;
   tasks?: Array<{ id: string; name: string; durationDays: number; critical?: boolean; dependsOn?: string[]; resource?: string }>;
+  milestones?: Array<{ id: string; name: string; dayOffset: number; type: string; description?: string }>;
+  phaseSummaries?: Array<{ phaseId: string; name: string; durationDays: number; primaryDriver: string; resourcesPeak: string[]; riskFlag?: string }>;
+  resourceLoad?: Array<{ resource: string; totalDays: number; peakConcurrency: number }>;
+  scheduleStrategy?: { approach: string; bufferStrategy: string; resourceConstraints: string[]; schedulingMethod: string };
 };
 type RiskShape = {
-  newRisks?: Array<{ title: string; category: string; likelihood: number; impact: number; trend: string; predicted30d: number; predicted60d: number; predicted90d: number; description: string; mitigation: string }>;
+  newRisks?: Array<{
+    title: string; category: string; likelihood: number; impact: number; trend: string;
+    predicted30d: number; predicted60d: number; predicted90d: number;
+    description: string; mitigation: string;
+    isoStandards?: Array<{ standard: string; clause?: string; application: string }>;
+    controls?: Array<{ type: string; description: string }>;
+    residualLikelihood?: number; residualImpact?: number;
+    owner?: string; dueWithinDays?: number;
+  }>;
   portfolioInsight?: string;
+  isoFramework?: Array<{ standard: string; title: string; appliesTo: string[]; whyRelevant: string }>;
+  topActions?: Array<{ action: string; owner: string; dueWithinDays: number }>;
 };
 type EstShape = {
   projectType?: string;
@@ -34,6 +48,10 @@ type EstShape = {
   assumptions?: string[];
   swingFactors?: Array<{ label: string; lowUSDm: number; highUSDm: number }>;
   narrative?: string;
+  costBreakdown?: Array<{ category: string; amountUSDm: number; basis: string }>;
+  personnel?: Array<{ role: string; count: number; monthlyRateUSD: number; totalPersonMonths: number; totalCostUSDm: number }>;
+  methodology?: Array<{ step: number; title: string; detail: string }>;
+  analogScaling?: Array<{ analogName: string; scalingFactor: string; contribution: string }>;
 };
 
 function validatePlan(p: PlanShape): string | null {
@@ -104,21 +122,21 @@ export async function POST(req: Request) {
         user: scopeUser(fullBrief),
         mode: "fast",
         cacheSystem: true,
-        maxTokens: 4096,
+        maxTokens: 6144,
       }),
       generateJSON<RiskShape>({
         system: RISK_SYSTEM,
         user: riskUser(fullBrief, []),
         mode: "fast",
         cacheSystem: true,
-        maxTokens: 4096,
+        maxTokens: 6144,
       }),
       generateJSON<EstShape>({
         system: EST_SYSTEM,
         user: estUser(fullBrief, analogs),
         mode: "fast",
         cacheSystem: true,
-        maxTokens: 4096,
+        maxTokens: 6144,
       }),
     ]);
 

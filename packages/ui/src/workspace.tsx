@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 
-const STORAGE_KEY = "iesl:workspace:v4";
+const STORAGE_KEY = "iesl:workspace:v5";
 const PROJECTS_CAP = 20;
 const INPUT_BYTES_CAP = 3000;
 
@@ -82,6 +82,47 @@ export type WBSTask = {
   resource?: string;
 };
 
+export type Milestone = {
+  id: string;
+  name: string;
+  dayOffset: number;
+  type: "gate" | "regulatory" | "delivery" | "commissioning";
+  description?: string;
+};
+
+export type PhaseSummary = {
+  phaseId: string;
+  name: string;
+  durationDays: number;
+  primaryDriver: string;
+  resourcesPeak: string[];
+  riskFlag?: "low" | "medium" | "high";
+};
+
+export type ScheduleStrategy = {
+  approach: string;
+  bufferStrategy: string;
+  resourceConstraints: string[];
+  schedulingMethod: string;
+};
+
+export type ResourceLoad = {
+  resource: string;
+  totalDays: number;
+  peakConcurrency: number;
+};
+
+export type ISOReference = {
+  standard: string;
+  clause?: string;
+  application: string;
+};
+
+export type RiskControl = {
+  type: "preventive" | "detective" | "corrective";
+  description: string;
+};
+
 export type RiskItem = {
   title: string;
   category: string;
@@ -93,12 +134,51 @@ export type RiskItem = {
   predicted90d: number;
   description: string;
   mitigation: string;
+  isoStandards?: ISOReference[];
+  controls?: RiskControl[];
+  residualLikelihood?: number;
+  residualImpact?: number;
+  owner?: string;
+  dueWithinDays?: number;
+};
+
+export type IsoFrameworkEntry = {
+  standard: string;
+  title: string;
+  appliesTo: string[];
+  whyRelevant: string;
 };
 
 export type SwingFactor = {
   label: string;
   lowUSDm: number;
   highUSDm: number;
+};
+
+export type CostBreakdownItem = {
+  category: string;
+  amountUSDm: number;
+  basis: string;
+};
+
+export type PersonnelRole = {
+  role: string;
+  count: number;
+  monthlyRateUSD: number;
+  totalPersonMonths: number;
+  totalCostUSDm: number;
+};
+
+export type MethodologyStep = {
+  step: number;
+  title: string;
+  detail: string;
+};
+
+export type AnalogScalingEntry = {
+  analogName: string;
+  scalingFactor: string;
+  contribution: string;
 };
 
 export type ProjectAnalysis = {
@@ -108,10 +188,16 @@ export type ProjectAnalysis = {
     projectName: string;
     summary: string;
     tasks: WBSTask[];
+    milestones?: Milestone[];
+    phaseSummaries?: PhaseSummary[];
+    resourceLoad?: ResourceLoad[];
+    scheduleStrategy?: ScheduleStrategy;
   };
   risks: {
     newRisks: RiskItem[];
     portfolioInsight: string;
+    isoFramework?: IsoFrameworkEntry[];
+    topActions?: { action: string; owner: string; dueWithinDays: number }[];
   };
   estimate: {
     projectType: string;
@@ -123,6 +209,10 @@ export type ProjectAnalysis = {
     assumptions: string[];
     swingFactors: SwingFactor[];
     narrative: string;
+    costBreakdown?: CostBreakdownItem[];
+    personnel?: PersonnelRole[];
+    methodology?: MethodologyStep[];
+    analogScaling?: AnalogScalingEntry[];
   };
 };
 

@@ -7,6 +7,9 @@ import { EstimateCard } from "../../estimator/components/EstimateCard";
 import { CostWaterfall } from "../../estimator/components/CostWaterfall";
 import { Tornado } from "../../estimator/components/Tornado";
 import { AnalogList } from "../../estimator/components/AnalogList";
+import { CostBreakdown } from "./estimate/CostBreakdown";
+import { PersonnelRoster } from "./estimate/PersonnelRoster";
+import { MethodologyTrace } from "./estimate/MethodologyTrace";
 
 export function EstimateTab({
   analysis,
@@ -30,12 +33,49 @@ export function EstimateTab({
         <EstimateCard estimate={estimate} query={query} />
       </motion.div>
 
+      {/* Cost breakdown by category */}
+      {estimate.costBreakdown && estimate.costBreakdown.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="rounded-2xl border border-white/8 bg-white/[0.03] p-6"
+        >
+          <div className="eyebrow mb-4">Cost breakdown by category · with derivation basis</div>
+          <CostBreakdown items={estimate.costBreakdown} total={estimate.costUSDm.likely} />
+        </motion.div>
+      )}
+
+      {/* Personnel roster + Methodology side by side */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_420px] gap-6">
+        {estimate.personnel && estimate.personnel.length > 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="rounded-2xl border border-white/8 bg-white/[0.03] p-6"
+          >
+            <div className="eyebrow mb-4">Personnel roster · roles, rates, person-months, cost</div>
+            <PersonnelRoster roles={estimate.personnel} />
+          </motion.div>
+        ) : (
+          <div />
+        )}
+
+        {estimate.methodology && estimate.methodology.length > 0 && (
+          <MethodologyTrace
+            steps={estimate.methodology}
+            scaling={estimate.analogScaling}
+          />
+        )}
+      </div>
+
       {/* Waterfall + Tornado */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.15 }}
           className="rounded-2xl border border-white/8 bg-white/[0.03] overflow-hidden"
         >
           <div className="px-5 py-4 border-b border-white/5">
@@ -49,7 +89,7 @@ export function EstimateTab({
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
+          transition={{ delay: 0.2 }}
           className="rounded-2xl border border-white/8 bg-white/[0.03] overflow-hidden"
         >
           <div className="px-5 py-4 border-b border-white/5">
@@ -66,7 +106,7 @@ export function EstimateTab({
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.25 }}
           className="rounded-2xl border border-white/8 bg-white/[0.03] p-6"
         >
           <div className="eyebrow mb-4">Key assumptions · {estimate.assumptions.length}</div>
@@ -76,7 +116,7 @@ export function EstimateTab({
                 key={i}
                 initial={{ opacity: 0, x: -4 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.25 + i * 0.04 }}
+                transition={{ delay: 0.3 + i * 0.04 }}
                 className="flex items-start gap-3 rounded-xl bg-white/[0.025] p-3"
               >
                 <div className="w-5 h-5 rounded-full bg-emerald-500/15 flex items-center justify-center text-emerald-400 text-[10px] font-bold shrink-0 mt-0.5">

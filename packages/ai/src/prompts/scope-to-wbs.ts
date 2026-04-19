@@ -144,8 +144,43 @@ Respond ONLY with a valid JSON object of exactly this shape. Do not include any 
       "dependsOn": [],
       "resource": "Marine"
     }
-  ]
+  ],
+  "milestones": [
+    {
+      "id": "M1",
+      "name": "FEED freeze",
+      "dayOffset": 21,
+      "type": "gate",
+      "description": "Engineering deliverables baselined"
+    }
+  ],
+  "phaseSummaries": [
+    {
+      "phaseId": "1",
+      "name": "Engineering & Permits",
+      "durationDays": 42,
+      "primaryDriver": "NUPRC permit window",
+      "resourcesPeak": ["Engineering", "Regulatory Lead"],
+      "riskFlag": "medium"
+    }
+  ],
+  "resourceLoad": [
+    { "resource": "Marine", "totalDays": 35, "peakConcurrency": 2 },
+    { "resource": "Dive Team", "totalDays": 12, "peakConcurrency": 1 }
+  ],
+  "scheduleStrategy": {
+    "approach": "1-2 sentences describing the scheduling approach (e.g. critical-chain, fast-tracked engineering, sequential offshore)",
+    "bufferStrategy": "where buffer is parked and why (e.g. 5-day weather buffer pre-mob, 7-day commissioning buffer)",
+    "resourceConstraints": ["DSV slot must be booked 60d in advance", "HLV not required"],
+    "schedulingMethod": "CPM with phase rollups; durations from IESL Niger Delta calibration anchors"
+  }
 }
+
+REQUIREMENTS for the new fields:
+- "milestones": EXACTLY 4–8 entries marking gates / regulatory approvals / deliveries / commissioning. dayOffset is days from project start. type is one of "gate" | "regulatory" | "delivery" | "commissioning".
+- "phaseSummaries": one entry PER phase header you produced. riskFlag is "low" | "medium" | "high".
+- "resourceLoad": one entry per UNIQUE resource used in tasks. totalDays = sum of durations using that resource. peakConcurrency = max number of tasks running in parallel that use it.
+- "scheduleStrategy": always present, written in your voice as the planner.
 
 Fields "critical", "dependsOn", and "resource" are optional on any task but MUST be present on all critical-path tasks.`;
 

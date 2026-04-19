@@ -105,8 +105,46 @@ Respond ONLY with a valid JSON object of exactly this shape. Do not include any 
     { "label": "HLV slot slippage", "lowUSDm": -2.0, "highUSDm": 8.0 },
     { "label": "Community GMoU", "lowUSDm": -1.0, "highUSDm": 5.0 }
   ],
-  "narrative": "2–3 sentence executive narrative referencing at least 2 analog project names from the supplied list by their exact names, explaining the analogical basis for the estimate and highlighting the single largest uncertainty"
-}`;
+  "narrative": "2–3 sentence executive narrative referencing at least 2 analog project names from the supplied list by their exact names, explaining the analogical basis for the estimate and highlighting the single largest uncertainty",
+  "costBreakdown": [
+    { "category": "Engineering & Design",          "amountUSDm": 4.8,  "basis": "1,200 person-hours × USD 200/hr × 2 (FEED + detailed)" },
+    { "category": "Procurement & Materials",       "amountUSDm": 18.0, "basis": "Long-lead spool + valves + manifold per analog ratio" },
+    { "category": "Marine Spread (DSV/HLV)",       "amountUSDm": 12.5, "basis": "DSV 25 days × USD 100k/d + HLV 5 days × USD 220k/d" },
+    { "category": "Construction & Install",        "amountUSDm": 8.2,  "basis": "Offshore crew labour + consumables + ROV support" },
+    { "category": "Commissioning & Handover",      "amountUSDm": 2.5,  "basis": "Pre-com + first-oil window per anchor day-rate" },
+    { "category": "Community / Regulatory",        "amountUSDm": 1.6,  "basis": "GMoU minor-works bracket + NUPRC compliance allowance" },
+    { "category": "Project Management & Controls", "amountUSDm": 3.4,  "basis": "8% of TIC per IESL PMC norms" },
+    { "category": "Contingency",                   "amountUSDm": 3.8,  "basis": "13% of base cost (moderate complexity bracket)" }
+  ],
+  "personnel": [
+    { "role": "Project Director",        "count": 1, "monthlyRateUSD": 32000, "totalPersonMonths": 8,  "totalCostUSDm": 0.26 },
+    { "role": "Engineering Manager",     "count": 1, "monthlyRateUSD": 28000, "totalPersonMonths": 6,  "totalCostUSDm": 0.17 },
+    { "role": "Lead Subsea Engineer",    "count": 2, "monthlyRateUSD": 22000, "totalPersonMonths": 10, "totalCostUSDm": 0.44 },
+    { "role": "HSE Manager",             "count": 1, "monthlyRateUSD": 20000, "totalPersonMonths": 8,  "totalCostUSDm": 0.16 },
+    { "role": "Marine Coordinator",      "count": 1, "monthlyRateUSD": 18000, "totalPersonMonths": 5,  "totalCostUSDm": 0.09 },
+    { "role": "Procurement Manager",     "count": 1, "monthlyRateUSD": 18000, "totalPersonMonths": 6,  "totalCostUSDm": 0.11 },
+    { "role": "QA/QC Manager",           "count": 1, "monthlyRateUSD": 16000, "totalPersonMonths": 6,  "totalCostUSDm": 0.10 },
+    { "role": "Commissioning Lead",      "count": 1, "monthlyRateUSD": 22000, "totalPersonMonths": 3,  "totalCostUSDm": 0.07 },
+    { "role": "Offshore Crew (Dive Team)", "count": 12, "monthlyRateUSD": 14000, "totalPersonMonths": 24, "totalCostUSDm": 0.34 }
+  ],
+  "methodology": [
+    { "step": 1, "title": "Analog selection",        "detail": "Filtered IESL archive to 2 closest analogs by water depth and scope type" },
+    { "step": 2, "title": "Scaling factors applied", "detail": "Length ratio 1.4× and water-depth uplift 1.15× from analog baseline" },
+    { "step": 3, "title": "Anchor sense-check",      "detail": "Marine spread cost reconciled against IESL day-rate anchors (DSV USD 100k/d midpoint)" },
+    { "step": 4, "title": "Range derivation",        "detail": "Low / likely / high derived from identified uncertainties (slot slippage, FX, GMoU)" },
+    { "step": 5, "title": "Contingency setting",     "detail": "13% selected per moderate-complexity bracket; primary driver: HLV vessel availability" }
+  ],
+  "analogScaling": [
+    { "analogName": "<exact analog name from list>", "scalingFactor": "1.4× pipeline length, water depth +20m", "contribution": "Anchored marine spread duration and procurement cost" },
+    { "analogName": "<exact analog name from list>", "scalingFactor": "0.8× scope (no riser package)",          "contribution": "Bounded the LOW estimate after subtracting riser scope" }
+  ]
+}
+
+REQUIREMENTS for the new fields:
+- "costBreakdown": 6–10 entries. The sum of amountUSDm MUST equal costUSDm.likely ± 5%. The "Contingency" line MUST be present and equal contingencyPct% × (sum of all other categories). "basis" is a one-line traceable derivation (not a generic phrase like "industry norms").
+- "personnel": 7–12 roles. totalCostUSDm = count × monthlyRateUSD × totalPersonMonths / 1,000,000 (verify the arithmetic before responding). The sum of personnel totalPersonMonths SHOULD be within ±15% of effortPersonMonths.likely.
+- "methodology": EXACTLY 5 steps numbered 1–5, in the order shown above. "detail" must reference specific numbers from your estimate (analog ratios, day-rates, percentages) — not generic process descriptions.
+- "analogScaling": 1–3 entries referencing analog names verbatim from the supplied list. If you cite an analog here, you MUST also cite it in the narrative.`;
 
 export type Analog = {
   id: string;

@@ -94,6 +94,68 @@ Consider the following when relevant to the scope and stated project phase:
   - Piracy and security: low-level threat in many OML areas; elevated in certain offshore blocs — tailor the assessment to the stated location.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ISO / INDUSTRY STANDARDS MAPPING (mandatory, not decorative)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Every new risk MUST be tied to at least one named standard whose controls apply. Use ONLY standards from this approved list — do NOT invent standard numbers, clauses, or titles.
+
+  ISO 31000:2018           — Risk management — Guidelines (clauses 6.4 Risk assessment, 6.5 Risk treatment, 6.6 Monitoring & review)
+  ISO 31010:2019           — Risk assessment techniques (cite the technique used: HAZOP, Bowtie, FMEA)
+  ISO 45001:2018           — Occupational H&S management (clauses 6.1.2 Hazard ID, 8.1.2 Hierarchy of controls, 8.2 Emergency preparedness)
+  ISO 14001:2015           — Environmental management (clauses 6.1.2 Environmental aspects, 8.2 Emergency response)
+  ISO 27001:2022           — Information security (Annex A controls — only when the risk is IT or data-related)
+  ISO 19011:2018           — Auditing management systems (audit/assurance risks only)
+  ISO 22301:2019           — Business continuity (continuity / resilience risks only)
+  IOGP Report 510          — OMS framework for oil & gas
+  IOGP Report 459          — Life-Saving Rules (HSE risks involving lifting, confined space, energy isolation, working at height, line of fire)
+  API RP 14C               — Safety systems for offshore production (offshore HSE/process risks only)
+  API RP 75                — SEMS for offshore operations
+  API RP 1173              — Pipeline safety management systems (pipeline scopes only)
+  DNV-OS-F101              — Submarine pipeline systems (subsea pipeline scopes only)
+  NUPRC Regulations        — Nigerian Upstream Petroleum Regulatory Commission (regulatory risks only)
+  NCDMB NOGICD Act 2010    — Nigerian Content (local-content / commercial risks only)
+  NIMASA Cabotage Act 2003 — Marine vessel cabotage compliance (marine asset risks only)
+  ISO 9001:2015            — Quality management (QA / NCR risks only)
+
+For each risk, "isoStandards" must list 1–3 entries. Each entry needs:
+  - "standard": exact name from the list above
+  - "clause": specific clause/section if the standard is ISO; or "—" if no clause-level granularity exists
+  - "application": one-sentence explanation of how that standard's control applies to THIS specific risk on THIS project — no boilerplate
+
+Citing irrelevant standards (e.g. ISO 27001 on a purely physical scope, DNV-OS-F101 on an onshore project) is a serious reasoning error.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CONTROLS HIERARCHY (per ISO 45001 §8.1.2)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+For each risk, "controls" must include 2–4 entries spanning at least two of:
+  - "preventive": stops the event from occurring (engineering control, procedure, training, permit)
+  - "detective": detects the event early (monitoring, inspection, audit, alarm)
+  - "corrective": limits consequences once it occurs (emergency response, contingency, insurance)
+
+Each entry: { "type": "preventive|detective|corrective", "description": "specific action — never a generic phrase like 'follow procedures'" }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RESIDUAL RISK (mandatory)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+After applying the listed controls, estimate residual likelihood and impact.
+  - residualLikelihood ≤ likelihood (controls cannot make a risk more likely)
+  - residualImpact     ≤ impact     (controls cannot make a risk worse)
+  - At least one of (residualLikelihood, residualImpact) must be strictly less than its inherent counterpart, otherwise the controls are ineffective and must be re-stated.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OWNERSHIP & TIMELINE (mandatory)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+For each risk, supply:
+  - "owner": role title (NOT a person's name) responsible for implementing the mitigation. Use one of: Project Director | HSE Manager | Engineering Manager | Procurement Manager | Construction Manager | Commissioning Manager | Regulatory Lead | Community Relations Lead | QA/QC Manager | Marine Coordinator | Security Coordinator | Finance Controller
+  - "dueWithinDays": integer days from project kick-off by which the primary mitigation must be in place. Use 7, 14, 30, 60, 90, 120, 180, or 365.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TOP-LEVEL OUTPUT — ISO FRAMEWORK & TOP ACTIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+In addition to the risk list, produce:
+  - "isoFramework": 3–6 entries summarising the standards you used across the register, with title, list of risk titles each applies to, and why the standard was relevant to THIS project's scope.
+  - "topActions": EXACTLY the 5 highest-leverage immediate actions (not 5 risks — 5 actions). Each: action wording, owner role, and dueWithinDays.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 OUTPUT FORMAT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Respond ONLY with a valid JSON object of exactly this shape. Do not include any prose, markdown, or commentary outside the JSON.
@@ -110,10 +172,33 @@ Respond ONLY with a valid JSON object of exactly this shape. Do not include any 
       "predicted60d": 0.45,
       "predicted90d": 0.58,
       "description": "one-to-two sentence factual explanation grounded in project phase and Niger Delta conditions — no invented statistics",
-      "mitigation": "specific, actionable mitigation step with a clear owner or mechanism"
+      "mitigation": "specific, actionable mitigation step with a clear owner or mechanism",
+      "isoStandards": [
+        { "standard": "ISO 45001:2018", "clause": "8.1.2", "application": "Apply hierarchy of controls — eliminate exposure to dive operations during sea-state above 1.5 m via engineered weather window." }
+      ],
+      "controls": [
+        { "type": "preventive", "description": "Pre-mob met-ocean review by Marine Coordinator; HOLD criteria documented in Bridging Document." },
+        { "type": "detective", "description": "Real-time sea-state monitoring on DSV with daily HSE bulletin." },
+        { "type": "corrective", "description": "Pre-agreed stand-by clause in DSV charter with 12-hr trigger to demob if forecast deteriorates." }
+      ],
+      "residualLikelihood": 2,
+      "residualImpact": 3,
+      "owner": "HSE Manager",
+      "dueWithinDays": 30
     }
   ],
-  "portfolioInsight": "2–3 sentence narrative for the Executive Director summarising the dominant risk themes and recommended immediate actions, grounded only in what the project description states"
+  "portfolioInsight": "2–3 sentence narrative for the Executive Director summarising the dominant risk themes and recommended immediate actions, grounded only in what the project description states",
+  "isoFramework": [
+    {
+      "standard": "ISO 45001:2018",
+      "title": "Occupational health & safety management",
+      "appliesTo": ["Sea-state exceedance during dive ops", "Lifting operations on platform"],
+      "whyRelevant": "Diving and lifting are the dominant high-consequence exposures on this offshore tie-in scope."
+    }
+  ],
+  "topActions": [
+    { "action": "Sign DSV charter with weather-window HOLD clause", "owner": "Marine Coordinator", "dueWithinDays": 30 }
+  ]
 }`;
 
 export const user = (
