@@ -11,73 +11,65 @@ type Props = {
   error?: string;
   onRetry?: () => void;
   children?: ReactNode;
-  dense?: boolean;
 };
 
-export default function PanelShell({
-  title,
-  eyebrow,
-  status,
-  error,
-  onRetry,
-  children,
-  dense,
-}: Props) {
+export default function PanelShell({ title, eyebrow, status, error, onRetry, children }: Props) {
   return (
-    <section className={`glass ${dense ? "p-4" : "p-6"}`}>
-      <header className="flex items-center justify-between mb-4">
-        <div>
-          <div className="eyebrow">{eyebrow}</div>
-          <h3
-            className="text-2xl leading-tight mt-1"
-            style={{ fontFamily: "var(--font-display), serif" }}
-          >
+    <section className="card-elev overflow-hidden">
+      <header className="px-7 pt-6 pb-5 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="eyebrow eyebrow-brand mb-1.5">{eyebrow}</div>
+          <h3 className="font-display text-[26px] leading-tight tracking-[-0.015em] text-[var(--ink)]">
             {title}
           </h3>
         </div>
-        <StatusDot status={status} />
+        <StatusBadge status={status} />
       </header>
 
-      {status === "idle" && <div className="text-sm text-white/40">Waiting to start…</div>}
-      {status === "streaming" && <Skeleton />}
-      {status === "failed" && (
-        <div className="space-y-2">
-          <div className="text-sm text-red-400/90">{error ?? "Section failed."}</div>
-          {onRetry && (
-            <button onClick={onRetry} className="btn-ghost">
-              Retry this panel
-            </button>
-          )}
-        </div>
-      )}
-      {status === "ready" && children}
+      <div className="px-7 pb-7">
+        {status === "idle" && (
+          <p className="text-[14px] text-[var(--ink-4)]">Waiting in queue…</p>
+        )}
+        {status === "streaming" && <Skeleton />}
+        {status === "failed" && (
+          <div className="card-soft p-4 flex items-start justify-between gap-4">
+            <div className="text-[13.5px] text-[var(--bad)] leading-relaxed">
+              <strong className="font-semibold">Couldn’t generate this panel.</strong>
+              <div className="text-[var(--ink-3)] mt-1">{error ?? "Unknown error."}</div>
+            </div>
+            {onRetry && (
+              <button onClick={onRetry} className="btn-ghost shrink-0">
+                ↻ Retry
+              </button>
+            )}
+          </div>
+        )}
+        {status === "ready" && <div className="blur-in">{children}</div>}
+      </div>
     </section>
   );
 }
 
-function StatusDot({ status }: { status: Status }) {
-  const map: Record<Status, { cls: string; label: string }> = {
-    idle: { cls: "bg-white/20", label: "Idle" },
-    streaming: { cls: "bg-indigo-400 animate-pulse", label: "Streaming" },
-    ready: { cls: "bg-emerald-400", label: "Ready" },
-    failed: { cls: "bg-red-400", label: "Failed" },
-  };
-  const { cls, label } = map[status];
-  return (
-    <div className="flex items-center gap-2 text-xs text-white/50">
-      <span className={`inline-block h-2 w-2 rounded-full ${cls}`} />
-      {label}
-    </div>
-  );
+function StatusBadge({ status }: { status: Status }) {
+  switch (status) {
+    case "idle":
+      return <span className="chip"><span className="dot dot-idle" /> Idle</span>;
+    case "streaming":
+      return <span className="chip chip-brand"><span className="dot dot-stream" /> Generating</span>;
+    case "ready":
+      return <span className="chip chip-ok"><span className="dot dot-ok" /> Ready</span>;
+    case "failed":
+      return <span className="chip chip-bad"><span className="dot dot-bad" /> Failed</span>;
+  }
 }
 
 function Skeleton() {
   return (
-    <div className="space-y-2">
-      <div className="h-3 rounded shimmer" />
-      <div className="h-3 rounded shimmer w-5/6" />
-      <div className="h-3 rounded shimmer w-2/3" />
-      <div className="h-24 rounded shimmer mt-3" />
+    <div className="space-y-3">
+      <div className="skeleton h-3.5 w-3/4" />
+      <div className="skeleton h-3.5 w-5/6" />
+      <div className="skeleton h-3.5 w-2/3" />
+      <div className="skeleton h-32 w-full mt-4" />
     </div>
   );
 }

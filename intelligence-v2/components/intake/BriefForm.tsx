@@ -14,26 +14,29 @@ const SECTOR_OPTIONS = [
 ];
 
 const SCALE_OPTIONS = ["Small (<50M)", "Mid (50–250M)", "Large (250M–1B)", "Mega (>1B)"];
-
 const HORIZON_OPTIONS = ["< 12 months", "12–24 months", "24–48 months", "> 48 months"];
+
+const EXAMPLE = `25 km subsea tieback in 1,200 m water depth in the deepwater Gulf of Mexico. Two new production wells tied back to an existing FPSO with chemical injection, gas lift and full SCM. First oil targeted within 28 months. Engineering led from Houston with fabrication in Singapore.`;
 
 type Props = { onSubmit: (b: Brief) => void; disabled?: boolean };
 
 export default function BriefForm({ onSubmit, disabled }: Props) {
   const [projectBrief, setProjectBrief] = useState("");
-  const [sector, setSector] = useState<string>("");
-  const [scale, setScale] = useState<string>("");
-  const [horizon, setHorizon] = useState<string>("");
-  const [budgetCeilingUSDm, setBudgetCeiling] = useState<string>("");
-  const [targetCompletionISO, setTarget] = useState<string>("");
-  const [constraints, setConstraints] = useState<string>("");
+  const [sector, setSector] = useState("");
+  const [scale, setScale] = useState("");
+  const [horizon, setHorizon] = useState("");
+  const [budgetCeilingUSDm, setBudget] = useState("");
+  const [targetCompletionISO, setTarget] = useState("");
+  const [constraints, setConstraints] = useState("");
+  const [showOptional, setShowOptional] = useState(false);
 
-  const canSubmit = projectBrief.trim().length >= 40 && !disabled;
+  const len = projectBrief.trim().length;
+  const canSubmit = len >= 40 && !disabled;
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
-    const brief: Brief = {
+    onSubmit({
       projectBrief: projectBrief.trim(),
       sector: sector || undefined,
       scale: scale || undefined,
@@ -41,118 +44,131 @@ export default function BriefForm({ onSubmit, disabled }: Props) {
       budgetCeilingUSDm: budgetCeilingUSDm ? Number(budgetCeilingUSDm) : undefined,
       targetCompletionISO: targetCompletionISO || undefined,
       constraints: constraints.trim() || undefined,
-    };
-    onSubmit(brief);
+    });
   }
 
   return (
-    <form onSubmit={submit} className="space-y-6">
+    <form onSubmit={submit} className="space-y-7">
+      {/* Brief */}
       <div>
-        <label className="eyebrow block mb-3">Project brief</label>
+        <div className="flex items-center justify-between mb-2.5">
+          <label htmlFor="brief" className="text-[13.5px] font-medium text-[var(--ink)]">
+            Project brief
+          </label>
+          <button
+            type="button"
+            onClick={() => setProjectBrief(EXAMPLE)}
+            className="text-[12px] text-[var(--brand)] hover:underline"
+          >
+            Use example
+          </button>
+        </div>
         <textarea
+          id="brief"
           value={projectBrief}
           onChange={(e) => setProjectBrief(e.target.value)}
-          placeholder="Describe the project in 2–5 sentences. Include scope, location, technical highlights, and any known constraints."
-          className="w-full min-h-[140px] rounded-xl bg-slate-950/50 border border-slate-700/50 px-4 py-3 text-sm leading-relaxed text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition"
+          placeholder="Describe the project: scope, location, technical highlights, schedule and budget intent."
+          className="input min-h-[160px]"
           disabled={disabled}
         />
-        <div className="mt-2 flex items-center justify-between text-xs">
-          <span className={projectBrief.trim().length >= 40 ? "text-emerald-400" : "text-slate-500"}>
-            {projectBrief.trim().length} chars {projectBrief.trim().length >= 40 ? "✓" : "— minimum 40"}
-          </span>
+        <div className="mt-2 flex items-center gap-2 text-[12px] text-[var(--ink-3)]">
+          <span className={`inline-block w-1.5 h-1.5 rounded-full ${len >= 40 ? "bg-[var(--ok)]" : "bg-[var(--ink-4)]"}`} />
+          <span>{len} / 40 characters</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Select label="Sector" value={sector} onChange={setSector} options={SECTOR_OPTIONS} disabled={disabled} />
-        <Select label="Scale" value={scale} onChange={setScale} options={SCALE_OPTIONS} disabled={disabled} />
-        <Select label="Horizon" value={horizon} onChange={setHorizon} options={HORIZON_OPTIONS} disabled={disabled} />
+      {/* Meta */}
+      <div className="grid sm:grid-cols-3 gap-4">
+        <Field label="Sector">
+          <select className="input" value={sector} onChange={(e) => setSector(e.target.value)} disabled={disabled}>
+            <option value="">Choose sector</option>
+            {SECTOR_OPTIONS.map((o) => <option key={o}>{o}</option>)}
+          </select>
+        </Field>
+        <Field label="Scale">
+          <select className="input" value={scale} onChange={(e) => setScale(e.target.value)} disabled={disabled}>
+            <option value="">Choose scale</option>
+            {SCALE_OPTIONS.map((o) => <option key={o}>{o}</option>)}
+          </select>
+        </Field>
+        <Field label="Horizon">
+          <select className="input" value={horizon} onChange={(e) => setHorizon(e.target.value)} disabled={disabled}>
+            <option value="">Choose horizon</option>
+            {HORIZON_OPTIONS.map((o) => <option key={o}>{o}</option>)}
+          </select>
+        </Field>
       </div>
 
-      <details className="group">
-        <summary className="cursor-pointer glass px-5 py-3 rounded-xl flex items-center justify-between hover:border-blue-500/40 transition">
-          <span className="text-sm font-medium text-slate-200">Optional: budget, deadline, constraints</span>
-          <span className="text-slate-500 group-open:rotate-180 transition">▼</span>
-        </summary>
-        <div className="mt-3 glass p-5 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="eyebrow block mb-2">Budget ceiling (USD M)</label>
+      {/* Optional */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowOptional((v) => !v)}
+          className="text-[13px] text-[var(--ink-2)] hover:text-[var(--ink)] inline-flex items-center gap-1.5"
+        >
+          <span className={`inline-block transition-transform ${showOptional ? "rotate-90" : ""}`}>›</span>
+          {showOptional ? "Hide" : "Add"} budget, deadline & constraints
+        </button>
+
+        {showOptional && (
+          <div className="mt-4 grid sm:grid-cols-2 gap-4 rise">
+            <Field label="Budget ceiling (USD M)">
               <input
                 type="number"
-                inputMode="decimal"
-                min="0"
-                step="1"
+                min={0}
+                step={1}
                 value={budgetCeilingUSDm}
-                onChange={(e) => setBudgetCeiling(e.target.value)}
+                onChange={(e) => setBudget(e.target.value)}
                 placeholder="e.g. 420"
-                className="w-full rounded-lg bg-slate-950/50 border border-slate-700/50 px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 transition"
+                className="input"
                 disabled={disabled}
               />
-            </div>
-            <div>
-              <label className="eyebrow block mb-2">Target completion</label>
+            </Field>
+            <Field label="Target completion">
               <input
                 type="date"
                 value={targetCompletionISO}
                 onChange={(e) => setTarget(e.target.value)}
-                className="w-full rounded-lg bg-slate-950/50 border border-slate-700/50 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 transition"
+                className="input"
                 disabled={disabled}
               />
+            </Field>
+            <div className="sm:col-span-2">
+              <Field label="Constraints / context">
+                <textarea
+                  value={constraints}
+                  onChange={(e) => setConstraints(e.target.value)}
+                  placeholder="Regulatory regime, local content quotas, weather windows, partner agreements…"
+                  className="input min-h-[88px]"
+                  disabled={disabled}
+                />
+              </Field>
             </div>
           </div>
-          <div>
-            <label className="eyebrow block mb-2">Constraints / context</label>
-            <textarea
-              value={constraints}
-              onChange={(e) => setConstraints(e.target.value)}
-              placeholder="Regulatory regime, local content quotas, weather windows, partner agreements, …"
-              className="w-full min-h-[80px] rounded-lg bg-slate-950/50 border border-slate-700/50 p-3 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 transition"
-              disabled={disabled}
-            />
-          </div>
-        </div>
-      </details>
+        )}
+      </div>
 
-      <div className="flex justify-end pt-4">
+      {/* CTA */}
+      <div className="pt-3 flex items-center justify-between gap-4 flex-wrap">
+        <div className="text-[12.5px] text-[var(--ink-3)]">
+          Streams to your screen in ~30 seconds. No data persisted.
+        </div>
         <button type="submit" disabled={!canSubmit} className="btn-primary">
-          Analyse with Claude →
+          Analyse with Claude
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
       </div>
     </form>
   );
 }
 
-function Select({
-  label,
-  value,
-  onChange,
-  options,
-  disabled,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  options: string[];
-  disabled?: boolean;
-}) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="eyebrow block mb-2">{label}</label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg bg-slate-950/50 border border-slate-700/50 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 transition appearance-none"
-        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M1 4l5 4 5-4'/%3E%3C/svg%3E")`, backgroundPosition: 'right 8px center', backgroundRepeat: 'no-repeat', paddingRight: '28px' }}
-        disabled={disabled}
-      >
-        <option value="">— Select {label.toLowerCase()}</option>
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {o}
-          </option>
-        ))}
-      </select>
+      <label className="text-[13.5px] font-medium text-[var(--ink)] block mb-2">{label}</label>
+      {children}
     </div>
   );
 }

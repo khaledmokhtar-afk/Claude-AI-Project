@@ -2,17 +2,17 @@
 
 import type { PlanExtras } from "@/lib/types";
 
-const TYPE_COLOR: Record<string, string> = {
-  gate: "bg-indigo-500/20 text-indigo-200 border-indigo-400/40",
-  regulatory: "bg-amber-500/20 text-amber-200 border-amber-400/40",
-  delivery: "bg-emerald-500/20 text-emerald-200 border-emerald-400/40",
-  commissioning: "bg-pink-500/20 text-pink-200 border-pink-400/40",
+const TYPE_STYLE: Record<string, string> = {
+  gate: "chip-brand",
+  regulatory: "chip-warn",
+  delivery: "chip-ok",
+  commissioning: "chip",
 };
 
-const FLAG_COLOR: Record<string, string> = {
-  low: "bg-emerald-500/15 text-emerald-300",
-  medium: "bg-amber-500/15 text-amber-300",
-  high: "bg-red-500/15 text-red-300",
+const FLAG_STYLE: Record<string, string> = {
+  low: "chip-ok",
+  medium: "chip-warn",
+  high: "chip-bad",
 };
 
 export default function PlanExtrasPanel({ data }: { data: PlanExtras }) {
@@ -23,99 +23,105 @@ export default function PlanExtrasPanel({ data }: { data: PlanExtras }) {
   const maxLoad = Math.max(...data.resourceLoad.map((r) => r.totalDays), 1);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <div className="eyebrow mb-2">Milestones</div>
-        <ul className="space-y-2">
+    <div className="space-y-8">
+      <Section title="Milestones">
+        <div className="space-y-2.5">
           {data.milestones.map((m) => (
-            <li key={m.id} className="flex items-start gap-3 text-sm">
-              <span
-                className={`shrink-0 inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider ${TYPE_COLOR[m.type] ?? ""}`}
-              >
-                {m.type}
-              </span>
-              <div className="flex-1">
+            <div key={m.id} className="flex items-start gap-3 py-2 border-b border-[var(--line)] last:border-0">
+              <span className={`chip ${TYPE_STYLE[m.type] ?? ""} shrink-0`}>{m.type}</span>
+              <div className="flex-1 min-w-0">
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-white/90">{m.name}</span>
-                  <span className="text-xs text-white/40">Day {m.dayOffset}</span>
+                  <span className="text-[14px] text-[var(--ink)] font-medium">{m.name}</span>
+                  <span className="font-mono text-[12px] text-[var(--ink-3)] tabular-nums shrink-0">
+                    Day {m.dayOffset}
+                  </span>
                 </div>
-                {m.description && <div className="text-xs text-white/50 mt-0.5">{m.description}</div>}
+                {m.description && (
+                  <div className="text-[13px] text-[var(--ink-3)] mt-0.5">{m.description}</div>
+                )}
               </div>
-            </li>
+            </div>
           ))}
-        </ul>
-      </div>
+        </div>
+      </Section>
 
-      <div>
-        <div className="eyebrow mb-2">Phase summaries</div>
-        <div className="space-y-2">
+      <Section title="Phases">
+        <div className="grid sm:grid-cols-2 gap-3">
           {data.phaseSummaries.map((p) => (
-            <div key={p.phaseId} className="glass-hi p-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">{p.name}</span>
-                <span className={`text-[10px] font-mono uppercase rounded px-1.5 py-0.5 ${FLAG_COLOR[p.riskFlag] ?? ""}`}>
-                  {p.riskFlag} risk
-                </span>
+            <div key={p.phaseId} className="card-soft p-4">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[14px] font-medium text-[var(--ink)]">{p.name}</span>
+                <span className={`chip ${FLAG_STYLE[p.riskFlag] ?? ""}`}>{p.riskFlag} risk</span>
               </div>
-              <div className="mt-2 h-1.5 rounded bg-white/5 overflow-hidden">
+              <div className="mt-3 h-1.5 rounded-full bg-[var(--line)] overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500"
-                  style={{ width: `${(p.durationDays / totalPhaseDays) * 100}%` }}
+                  className="h-full rounded-full"
+                  style={{ width: `${(p.durationDays / totalPhaseDays) * 100}%`, background: "var(--brand)" }}
                 />
               </div>
-              <div className="mt-2 text-xs text-white/60">
-                <span className="text-white/40">Driver:</span> {p.primaryDriver}
+              <div className="mt-3 text-[12.5px] text-[var(--ink-3)]">
+                <span className="text-[var(--ink-4)] mr-1.5">Driver</span>
+                {p.primaryDriver}
               </div>
-              <div className="mt-1 text-xs text-white/50">
-                <span className="text-white/40">Peak:</span> {p.resourcesPeak.join(", ")}
+              <div className="mt-1 text-[12.5px] text-[var(--ink-3)]">
+                <span className="text-[var(--ink-4)] mr-1.5">Peak</span>
+                {p.resourcesPeak.join(" · ")}
               </div>
             </div>
           ))}
         </div>
-      </div>
+      </Section>
 
-      <div>
-        <div className="eyebrow mb-2">Resource load</div>
-        <div className="space-y-2">
+      <Section title="Resource load">
+        <div className="space-y-1.5">
           {data.resourceLoad.map((r) => (
-            <div key={r.resource} className="flex items-center gap-3 text-xs">
-              <div className="w-40 shrink-0 truncate text-white/80">{r.resource}</div>
-              <div className="flex-1 h-3 rounded bg-white/[0.03] border border-white/5 relative">
+            <div key={r.resource} className="flex items-center gap-3 text-[13px]">
+              <div className="w-44 shrink-0 truncate text-[var(--ink-2)]">{r.resource}</div>
+              <div className="flex-1 h-2.5 rounded-full bg-[var(--line)] overflow-hidden">
                 <div
-                  className="h-full rounded bg-gradient-to-r from-emerald-500/70 to-indigo-500/70"
-                  style={{ width: `${(r.totalDays / maxLoad) * 100}%` }}
+                  className="h-full"
+                  style={{ width: `${(r.totalDays / maxLoad) * 100}%`, background: "var(--brand)" }}
                 />
               </div>
-              <div className="w-20 shrink-0 text-right text-white/60">{r.totalDays}d</div>
-              <div className="w-10 shrink-0 text-right text-white/40">×{r.peakConcurrency}</div>
+              <div className="w-16 shrink-0 text-right font-mono text-[12px] text-[var(--ink-3)] tabular-nums">
+                {r.totalDays}d
+              </div>
+              <div className="w-10 shrink-0 text-right font-mono text-[11px] text-[var(--ink-4)]">
+                ×{r.peakConcurrency}
+              </div>
             </div>
           ))}
         </div>
-      </div>
+      </Section>
 
-      <div>
-        <div className="eyebrow mb-2">Schedule strategy</div>
-        <div className="glass-hi p-4 text-sm space-y-2">
-          <div>
-            <span className="text-white/40 text-xs uppercase mr-2">Approach</span>
-            {data.scheduleStrategy.approach}
-          </div>
-          <div>
-            <span className="text-white/40 text-xs uppercase mr-2">Method</span>
-            {data.scheduleStrategy.schedulingMethod}
-          </div>
-          <div>
-            <span className="text-white/40 text-xs uppercase mr-2">Buffers</span>
-            {data.scheduleStrategy.bufferStrategy}
-          </div>
+      <Section title="Schedule strategy">
+        <div className="card-soft p-5 space-y-3 text-[14px]">
+          <Field label="Approach">{data.scheduleStrategy.approach}</Field>
+          <Field label="Method">{data.scheduleStrategy.schedulingMethod}</Field>
+          <Field label="Buffers">{data.scheduleStrategy.bufferStrategy}</Field>
           {data.scheduleStrategy.resourceConstraints.length > 0 && (
-            <div>
-              <span className="text-white/40 text-xs uppercase mr-2">Constraints</span>
-              {data.scheduleStrategy.resourceConstraints.join(" · ")}
-            </div>
+            <Field label="Constraints">{data.scheduleStrategy.resourceConstraints.join(" · ")}</Field>
           )}
         </div>
-      </div>
+      </Section>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="eyebrow mb-3">{title}</div>
+      {children}
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-[110px_1fr] gap-3 items-baseline">
+      <div className="font-mono text-[11px] uppercase tracking-wider text-[var(--ink-4)]">{label}</div>
+      <div className="text-[var(--ink-2)]">{children}</div>
     </div>
   );
 }

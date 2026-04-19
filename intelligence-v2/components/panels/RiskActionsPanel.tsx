@@ -4,23 +4,23 @@ import type { RiskActions } from "@/lib/types";
 
 export default function RiskActionsPanel({ data }: { data: RiskActions }) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <div className="eyebrow mb-2">Top 5 actions</div>
-        <ol className="space-y-2">
+        <div className="eyebrow mb-3">Top 5 actions</div>
+        <ol className="space-y-2.5">
           {data.topActions.map((a, i) => (
-            <li key={i} className="flex items-start gap-3 glass-hi p-3">
-              <div className="shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-emerald-500 text-xs font-bold flex items-center justify-center">
+            <li key={i} className="flex items-start gap-4 card-soft p-4">
+              <div
+                className="shrink-0 w-8 h-8 rounded-full grid place-items-center font-mono text-[13px] text-white font-semibold"
+                style={{ background: "var(--ink)" }}
+              >
                 {i + 1}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm text-white/90">{a.action}</div>
-                <div className="text-xs text-white/50 mt-1">
-                  <span className="text-white/40 uppercase text-[10px] mr-1">Owner</span>
-                  {a.owner}
-                  <span className="mx-2 text-white/20">·</span>
-                  <span className="text-white/40 uppercase text-[10px] mr-1">Due</span>
-                  {a.dueWithinDays}d
+                <div className="text-[14.5px] text-[var(--ink)] leading-snug">{a.action}</div>
+                <div className="mt-1.5 flex flex-wrap gap-3 text-[12.5px] text-[var(--ink-3)]">
+                  <span><span className="text-[var(--ink-4)] mr-1">Owner</span>{a.owner}</span>
+                  <span><span className="text-[var(--ink-4)] mr-1">Due</span>{a.dueWithinDays}d</span>
                 </div>
               </div>
             </li>
@@ -29,24 +29,21 @@ export default function RiskActionsPanel({ data }: { data: RiskActions }) {
       </div>
 
       <div>
-        <div className="eyebrow mb-2">ISO / industry framework</div>
-        <div className="space-y-2">
+        <div className="eyebrow mb-3">ISO / industry framework</div>
+        <div className="grid sm:grid-cols-2 gap-3">
           {data.isoFramework.map((iso, i) => (
-            <div key={i} className="glass-hi p-3">
+            <div key={i} className="card-soft p-4">
               <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                <span className="font-mono text-sm text-indigo-300">{iso.standard}</span>
-                <span className="text-xs text-white/70">{iso.title}</span>
+                <span className="font-mono text-[13.5px] text-[var(--brand-ink)] font-semibold">
+                  {iso.standard}
+                </span>
               </div>
-              <div className="mt-1 text-xs text-white/50">{iso.whyRelevant}</div>
+              <div className="text-[13.5px] text-[var(--ink)] font-medium mt-0.5">{iso.title}</div>
+              <p className="text-[13px] text-[var(--ink-3)] mt-1.5 leading-[1.55]">{iso.whyRelevant}</p>
               {iso.appliesTo.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
+                <div className="mt-3 flex flex-wrap gap-1.5">
                   {iso.appliesTo.map((a, j) => (
-                    <span
-                      key={j}
-                      className="text-[10px] font-mono uppercase rounded bg-white/5 px-1.5 py-0.5 text-white/60"
-                    >
-                      {a}
-                    </span>
+                    <span key={j} className="chip">{a}</span>
                   ))}
                 </div>
               )}
@@ -56,8 +53,12 @@ export default function RiskActionsPanel({ data }: { data: RiskActions }) {
       </div>
 
       <div>
-        <div className="eyebrow mb-2">Portfolio insight</div>
-        <p className="text-sm text-white/75 italic leading-relaxed">{data.portfolioInsight}</p>
+        <div className="eyebrow mb-3">Portfolio insight</div>
+        <p
+          className="font-display text-[20px] leading-[1.45] text-[var(--ink)] italic max-w-[760px]"
+        >
+          “{data.portfolioInsight}”
+        </p>
       </div>
     </div>
   );

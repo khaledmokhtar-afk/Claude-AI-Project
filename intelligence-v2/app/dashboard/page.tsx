@@ -97,77 +97,98 @@ export default function Dashboard() {
 
   if (!brief) return null;
 
+  const pct = progress.total ? Math.round((progress.ready / progress.total) * 100) : 0;
+
   return (
-    <main className="min-h-screen">
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        <header className="mb-10 flex flex-wrap items-start justify-between gap-6">
-          <div className="min-w-0">
-            <div className="eyebrow mb-3">Analysis</div>
-            <h1 className="text-4xl font-bold leading-tight text-slate-100 mb-3">
-              {brief.projectBrief.split(/[.\n]/)[0]}...
-            </h1>
-            <p className="text-sm text-slate-400 max-w-2xl line-clamp-2">
-              {brief.projectBrief}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setRunId((n) => n + 1)}
-              className="px-4 py-2 rounded-lg text-sm font-medium bg-slate-900 border border-slate-700 text-slate-300 hover:border-blue-500/40 hover:text-slate-100 transition"
-            >
+    <main className="min-h-screen pb-24">
+      {/* Sticky top bar */}
+      <div className="sticky top-0 z-30 bg-[var(--bg)]/85 backdrop-blur border-b border-[var(--line)]">
+        <div className="max-w-[1180px] mx-auto px-6 lg:px-10 py-4 flex items-center justify-between gap-4">
+          <button
+            onClick={() => {
+              reset();
+              router.push("/");
+            }}
+            className="flex items-center gap-2 text-[13.5px] text-[var(--ink-3)] hover:text-[var(--ink)] transition"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M19 12H5M11 6l-6 6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            New brief
+          </button>
+
+          <div className="flex items-center gap-3 text-[13px] text-[var(--ink-3)]">
+            <span className="font-mono">{progress.ready}/{progress.total}</span>
+            <div className="w-32 h-[5px] rounded-full bg-[var(--line)] overflow-hidden">
+              <div
+                className="h-full transition-[width] duration-700"
+                style={{ width: `${pct}%`, background: progress.failed ? "var(--bad)" : "var(--ink)" }}
+              />
+            </div>
+            {elapsedMs !== null ? (
+              <span className="font-mono text-[var(--ink-3)]">{(elapsedMs / 1000).toFixed(1)}s</span>
+            ) : (
+              <span className="text-[var(--brand)] inline-flex items-center gap-1.5">
+                <span className="dot dot-stream" /> streaming
+              </span>
+            )}
+            <button onClick={() => setRunId((n) => n + 1)} className="btn-ghost ml-1">
               ↻ Re-run
             </button>
-            <button
-              onClick={() => {
-                reset();
-                router.push("/");
-              }}
-              className="px-4 py-2 rounded-lg text-sm font-medium bg-slate-900 border border-slate-700 text-slate-300 hover:border-blue-500/40 hover:text-slate-100 transition"
-            >
-              ⊕ New brief
-            </button>
-          </div>
-        </header>
-
-        <div className="mb-8 flex items-center justify-between gap-4 p-4 rounded-lg bg-slate-900/50 border border-slate-700/50">
-          <div className="flex items-center gap-4 text-xs text-slate-400">
-            <span>
-              <span className="font-semibold text-slate-200">{progress.ready}/{progress.total}</span> panels
-            </span>
-            {progress.failed > 0 && (
-              <span className="text-red-400">· {progress.failed} failed</span>
-            )}
-            {elapsedMs !== null && (
-              <span>· <span className="text-slate-300">{(elapsedMs / 1000).toFixed(1)}s</span></span>
-            )}
           </div>
         </div>
+      </div>
 
-        <nav className="mb-8 flex gap-2 border-b border-slate-700/50">
+      <div className="max-w-[1180px] mx-auto px-6 lg:px-10 pt-10">
+        {/* Brief summary */}
+        <header className="mb-10">
+          <div className="eyebrow eyebrow-brand mb-4">Analysis</div>
+          <h1 className="font-display text-[44px] leading-[1.08] tracking-[-0.02em] text-[var(--ink)] max-w-[820px]">
+            {brief.projectBrief.split(/[.!?\n]/)[0]}.
+          </h1>
+          <p className="mt-4 text-[15px] leading-[1.65] text-[var(--ink-3)] max-w-[760px]">
+            {brief.projectBrief}
+          </p>
+          {(brief.sector || brief.scale || brief.horizon || brief.budgetCeilingUSDm) && (
+            <div className="mt-5 flex flex-wrap gap-2">
+              {brief.sector && <span className="chip">{brief.sector}</span>}
+              {brief.scale && <span className="chip">{brief.scale}</span>}
+              {brief.horizon && <span className="chip">{brief.horizon}</span>}
+              {brief.budgetCeilingUSDm && <span className="chip">≤ ${brief.budgetCeilingUSDm}M</span>}
+              {brief.targetCompletionISO && <span className="chip">by {brief.targetCompletionISO}</span>}
+            </div>
+          )}
+        </header>
+
+        {/* Tab nav */}
+        <nav className="border-b border-[var(--line)] mb-8 flex flex-wrap" role="tablist">
           {TABS.map((t) => {
             const done = t.sections.every((s) => sections[s].status === "ready");
             const failed = t.sections.some((s) => sections[s].status === "failed");
+            const streaming = t.sections.some((s) => sections[s].status === "streaming");
             return (
               <button
                 key={t.id}
+                role="tab"
+                aria-selected={activeTab === t.id}
                 onClick={() => setTab(t.id)}
-                className={`px-4 py-3 text-sm font-medium transition border-b-2 ${
-                  activeTab === t.id
-                    ? "border-blue-500 text-blue-400"
-                    : "border-transparent text-slate-400 hover:text-slate-300"
-                }`}
+                className="tab inline-flex items-center gap-2"
               >
                 {t.label}
-                {done && <span className="ml-2 text-emerald-400">●</span>}
-                {failed && <span className="ml-2 text-red-400">●</span>}
+                {streaming && <span className="dot dot-stream" />}
+                {!streaming && done && <span className="dot dot-ok" />}
+                {!streaming && failed && <span className="dot dot-bad" />}
               </button>
             );
           })}
         </nav>
 
+        {/* Panels */}
         <div className="grid grid-cols-1 gap-6">
-          {activeSections.map((id) => (
-            <SectionRenderer key={id} id={id} runId={runId} />
+          {activeSections.map((id, i) => (
+            <div key={id} className="rise" style={{ animationDelay: `${i * 80}ms` }}>
+              <SectionRenderer id={id} runId={runId} />
+            </div>
           ))}
         </div>
       </div>
