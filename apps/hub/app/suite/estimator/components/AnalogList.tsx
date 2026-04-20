@@ -5,65 +5,60 @@ import type { HistoricalProject } from "@iesl/data";
 
 export function AnalogList({ analogs }: { analogs: HistoricalProject[] }) {
   return (
-    <div className="glass p-5">
-      <div className="flex items-center justify-between mb-3">
-        <div className="text-xs uppercase tracking-wider text-[var(--color-text-muted)]">
-          Retrieved analogs · top {analogs.length}
-        </div>
+    <div className="card p-6">
+      <div className="eyebrow mb-4">
+        Retrieved analogs · top {analogs.length} · budget vs actual
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {analogs.map((a, i) => {
-          const outcomeTone =
+          const over = a.actualUSDm > a.budgetUSDm * 1.03;
+          const under = a.actualUSDm < a.budgetUSDm * 0.97;
+          const outcomeChip =
             a.outcome === "Over-budget" || a.outcome === "Over-schedule"
-              ? "var(--color-neg)"
+              ? "chip-bad"
               : a.outcome === "Under-budget"
-                ? "var(--color-pos)"
-                : "var(--color-text-muted)";
+                ? "chip-ok"
+                : "chip";
           return (
             <motion.div
               key={a.id}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06 }}
-              className="p-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-soft)]"
+              transition={{ delay: i * 0.05 }}
+              className="card-soft p-4"
             >
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="font-medium text-sm">{a.name}</div>
-                  <div className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
+              <div className="flex items-start justify-between gap-3 mb-2.5">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-[13.5px] text-[var(--color-ink)] leading-snug">
+                    {a.name}
+                  </div>
+                  <div className="text-[11px] text-[var(--color-ink-4)] mt-1 font-mono uppercase tracking-[0.1em]">
                     {a.projectType} · {a.yearCompleted}
                   </div>
                 </div>
-                <div
-                  className="text-[10px] px-2 py-0.5 rounded shrink-0"
-                  style={{ background: "rgba(234,179,8,0.12)", color: "var(--color-accent)" }}
+                <span className="chip chip-brand shrink-0 tabular-nums">{a.durationMonths}mo</span>
+              </div>
+              <div className="flex items-center gap-2 text-[11.5px] font-mono text-[var(--color-ink-3)] tabular-nums">
+                <span>${a.budgetUSDm.toFixed(1)}m</span>
+                <span className="text-[var(--color-ink-4)]">→</span>
+                <span
+                  style={{
+                    color: over
+                      ? "var(--color-bad)"
+                      : under
+                        ? "var(--color-ok)"
+                        : "var(--color-ink)",
+                  }}
                 >
-                  {a.durationMonths}mo
-                </div>
-              </div>
-              <div className="mt-2 flex items-center gap-3 text-[11px] font-mono text-[var(--color-text-muted)]">
-                <span>
-                  Budget ${a.budgetUSDm.toFixed(1)}m → Actual{" "}
-                  <span
-                    style={{
-                      color:
-                        a.actualUSDm > a.budgetUSDm
-                          ? "var(--color-neg)"
-                          : a.actualUSDm < a.budgetUSDm
-                            ? "var(--color-pos)"
-                            : "var(--color-text)",
-                    }}
-                  >
-                    ${a.actualUSDm.toFixed(1)}m
-                  </span>
+                  ${a.actualUSDm.toFixed(1)}m
                 </span>
-              </div>
-              <div className="mt-2 text-[11px]" style={{ color: outcomeTone }}>
-                {a.outcome}
+                <span className={`chip ${outcomeChip} ml-auto`}>{a.outcome}</span>
               </div>
               {a.lessons && (
-                <div className="mt-1 text-[11px] text-[var(--color-text)]">
-                  <span className="text-[var(--color-text-muted)]">Lesson: </span>
+                <div className="mt-2.5 text-[12px] text-[var(--color-ink-2)] leading-[1.5]">
+                  <span className="text-[var(--color-ink-4)] font-mono text-[10px] uppercase tracking-[0.12em]">
+                    Lesson ·{" "}
+                  </span>
                   {a.lessons}
                 </div>
               )}

@@ -10,28 +10,23 @@ import { ResidualRiskBars } from "./risks/ResidualRiskBars";
 import { ActionRegister } from "./risks/ActionRegister";
 
 const TREND_COLOR: Record<string, string> = {
-  Rising: "#EF4444",
-  Stable: "#F59E0B",
-  Falling: "#10B981",
+  Rising:  "var(--color-bad)",
+  Stable:  "var(--color-warn)",
+  Falling: "var(--color-ok)",
 };
 
-const CATEGORY_COLORS: Record<string, string> = {
-  HSE: "#EF4444",
-  Schedule: "#F59E0B",
-  Cost: "#10B981",
-  Commercial: "#84CC16",
-  Regulatory: "#6366F1",
-  "Supply Chain": "#8B5CF6",
-  Geopolitical: "#EC4899",
-  Weather: "#3B82F6",
-  Technical: "#14B8A6",
+const CONTROL_STYLE: Record<string, { chip: string; label: string }> = {
+  preventive: { chip: "chip-brand", label: "PREVENTIVE" },
+  detective:  { chip: "chip-warn",  label: "DETECTIVE"  },
+  corrective: { chip: "chip-accent",label: "CORRECTIVE" },
 };
 
-const CONTROL_COLORS: Record<string, { bg: string; fg: string; label: string }> = {
-  preventive: { bg: "#6366F120", fg: "#818CF8", label: "PREVENTIVE" },
-  detective:  { bg: "#F59E0B20", fg: "#FBBF24", label: "DETECTIVE" },
-  corrective: { bg: "#EC489920", fg: "#F472B6", label: "CORRECTIVE" },
-};
+function scoreTone(score: number): string {
+  return score >= 15 ? "var(--color-bad)" : score >= 8 ? "var(--color-warn)" : "var(--color-ok)";
+}
+function scoreChip(score: number): string {
+  return score >= 15 ? "chip-bad" : score >= 8 ? "chip-warn" : "chip-ok";
+}
 
 export function RisksTab({ analysis }: { analysis: ProjectAnalysis }) {
   const { risks } = analysis;
@@ -57,26 +52,19 @@ export function RisksTab({ analysis }: { analysis: ProjectAnalysis }) {
     ? risks.newRisks[parseInt(selectedId.replace("r-", ""))]
     : null;
 
-  const selectedCatColor = selected ? (CATEGORY_COLORS[selected.category] ?? "#6366F1") : "#6366F1";
-
   return (
     <div className="space-y-6">
       {/* Portfolio insight banner */}
       {risks.portfolioInsight && (
         <motion.div
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-indigo-500/20 bg-indigo-500/[0.04] p-6"
+          className="card-accent p-6 lg:p-7"
         >
-          <div className="flex items-start gap-3">
-            <div className="w-1 self-stretch rounded-full bg-indigo-500 shrink-0" />
-            <div>
-              <div className="eyebrow text-indigo-400 mb-2">Portfolio insight</div>
-              <p className="text-base text-[var(--color-text)] leading-relaxed font-display">
-                {risks.portfolioInsight}
-              </p>
-            </div>
-          </div>
+          <div className="eyebrow eyebrow-brand mb-2.5">Portfolio insight</div>
+          <p className="font-display text-[22px] md:text-[24px] leading-[1.35] text-[var(--color-ink)] italic max-w-[820px]">
+            &ldquo;{risks.portfolioInsight}&rdquo;
+          </p>
         </motion.div>
       )}
 
@@ -93,10 +81,10 @@ export function RisksTab({ analysis }: { analysis: ProjectAnalysis }) {
       {/* Matrix + selected card / list */}
       <div className="grid grid-cols-1 xl:grid-cols-[auto_1fr] gap-6">
         <motion.div
-          initial={{ opacity: 0, scale: 0.97 }}
+          initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1 }}
-          className="rounded-2xl border border-white/8 bg-white/[0.03] p-6"
+          transition={{ delay: 0.08 }}
+          className="card p-6"
         >
           <div className="eyebrow mb-4">Heat matrix — {risks.newRisks.length} risks</div>
           <RiskMatrix
@@ -107,70 +95,47 @@ export function RisksTab({ analysis }: { analysis: ProjectAnalysis }) {
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, x: 10 }}
+          initial={{ opacity: 0, x: 8 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.15 }}
-          className="rounded-2xl border border-white/8 bg-white/[0.03] overflow-hidden"
+          transition={{ delay: 0.12 }}
+          className="card overflow-hidden"
         >
           {selected ? (
             <div className="p-6 space-y-5">
               <button
                 onClick={() => setSelectedId(null)}
-                className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] flex items-center gap-1"
+                className="text-[12px] text-[var(--color-ink-3)] hover:text-[var(--color-ink)] flex items-center gap-1 transition-colors"
               >
                 ← All risks
               </button>
 
-              <div className="flex items-start gap-3">
-                <div
-                  className="w-1 self-stretch rounded-full shrink-0"
-                  style={{ background: selectedCatColor }}
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span
-                      className="text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider"
-                      style={{ background: `${selectedCatColor}20`, color: selectedCatColor }}
-                    >
-                      {selected.category}
-                    </span>
-                    <span
-                      className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
-                      style={{ color: TREND_COLOR[selected.trend] ?? "#9CA3AF" }}
-                    >
-                      {selected.trend}
-                    </span>
-                    {selected.owner && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-[var(--color-text-muted)] font-mono uppercase tracking-wider">
-                        {selected.owner}
-                      </span>
-                    )}
-                    {typeof selected.dueWithinDays === "number" && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 font-mono">
-                        Due {selected.dueWithinDays}d
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="text-lg font-semibold text-[var(--color-text)]">
-                    {selected.title}
-                  </h3>
+              <div>
+                <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+                  <span className="chip">{selected.category}</span>
+                  <span className="chip" style={{ color: TREND_COLOR[selected.trend] }}>
+                    {selected.trend}
+                  </span>
+                  {selected.owner && <span className="chip">{selected.owner}</span>}
+                  {typeof selected.dueWithinDays === "number" && (
+                    <span className="chip chip-warn">Due {selected.dueWithinDays}d</span>
+                  )}
                 </div>
+                <h3 className="font-display text-[22px] leading-tight text-[var(--color-ink)]">
+                  {selected.title}
+                </h3>
               </div>
 
               {/* Probability bands */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-2.5">
                 {(["30d", "60d", "90d"] as const).map((d) => {
                   const val =
                     d === "30d" ? selected.predicted30d :
                     d === "60d" ? selected.predicted60d :
                     selected.predicted90d;
                   return (
-                    <div key={d} className="rounded-xl bg-white/[0.03] p-3 text-center">
-                      <div className="text-[10px] text-[var(--color-text-muted)] mb-1">{d} Prob.</div>
-                      <div
-                        className="text-xl font-bold font-mono"
-                        style={{ color: TREND_COLOR[selected.trend] ?? "#9CA3AF" }}
-                      >
+                    <div key={d} className="card-soft p-3 text-center">
+                      <div className="text-[10px] text-[var(--color-ink-4)] uppercase tracking-[0.15em] font-mono mb-1">{d} prob</div>
+                      <div className="font-mono text-[20px] tabular-nums" style={{ color: TREND_COLOR[selected.trend] }}>
                         {(val * 100).toFixed(0)}%
                       </div>
                     </div>
@@ -179,78 +144,59 @@ export function RisksTab({ analysis }: { analysis: ProjectAnalysis }) {
               </div>
 
               {/* Inherent vs residual */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl bg-white/[0.03] p-3">
-                  <div className="text-[10px] text-[var(--color-text-muted)] mb-1 uppercase tracking-wider">Inherent</div>
-                  <div className="text-base font-mono">
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="card-soft p-3">
+                  <div className="eyebrow mb-1">Inherent</div>
+                  <div className="font-mono text-[14.5px] text-[var(--color-ink)] tabular-nums">
                     L{selected.likelihood} × I{selected.impact}
-                    <span className="ml-2 text-xs text-[var(--color-text-muted)]">= {selected.likelihood * selected.impact}</span>
+                    <span className="ml-2 text-[var(--color-ink-4)]">= {selected.likelihood * selected.impact}</span>
                   </div>
                 </div>
                 {typeof selected.residualLikelihood === "number" && typeof selected.residualImpact === "number" && (
-                  <div className="rounded-xl bg-emerald-500/[0.05] p-3 border border-emerald-500/20">
-                    <div className="text-[10px] text-emerald-400 mb-1 uppercase tracking-wider">Residual (post-controls)</div>
-                    <div className="text-base font-mono text-emerald-300">
+                  <div className="card-soft p-3" style={{ background: "var(--color-ok-soft)" }}>
+                    <div className="eyebrow" style={{ color: "var(--color-ok)" }}>Residual</div>
+                    <div className="font-mono text-[14.5px] tabular-nums mt-1" style={{ color: "var(--color-ok)" }}>
                       L{selected.residualLikelihood} × I{selected.residualImpact}
-                      <span className="ml-2 text-xs text-emerald-400/70">= {selected.residualLikelihood * selected.residualImpact}</span>
+                      <span className="ml-2 opacity-80">= {selected.residualLikelihood * selected.residualImpact}</span>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Description */}
               <div>
-                <div className="eyebrow mb-1">Description</div>
-                <p className="text-sm text-[var(--color-text-muted)] leading-relaxed">
-                  {selected.description}
-                </p>
+                <div className="eyebrow mb-1.5">Description</div>
+                <p className="text-[13.5px] text-[var(--color-ink-2)] leading-[1.6]">{selected.description}</p>
               </div>
 
-              {/* ISO standards */}
               {selected.isoStandards && selected.isoStandards.length > 0 && (
                 <div>
-                  <div className="eyebrow mb-2 text-indigo-400">ISO / industry standards invoked</div>
+                  <div className="eyebrow eyebrow-brand mb-2">ISO / industry standards</div>
                   <div className="space-y-2">
                     {selected.isoStandards.map((iso, i) => (
-                      <div
-                        key={i}
-                        className="rounded-xl border border-indigo-500/20 bg-indigo-500/[0.04] p-3"
-                      >
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <span className="text-xs font-mono font-semibold text-indigo-300">{iso.standard}</span>
+                      <div key={i} className="card-soft p-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-mono text-[12.5px] font-semibold text-[var(--color-brand-ink)]">{iso.standard}</span>
                           {iso.clause && iso.clause !== "—" && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 font-mono">
-                              §{iso.clause}
-                            </span>
+                            <span className="chip chip-brand">§{iso.clause}</span>
                           )}
                         </div>
-                        <p className="text-[11px] text-[var(--color-text-muted)] leading-relaxed">
-                          {iso.application}
-                        </p>
+                        <p className="text-[12.5px] text-[var(--color-ink-3)] leading-[1.55]">{iso.application}</p>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Controls hierarchy */}
               {selected.controls && selected.controls.length > 0 && (
                 <div>
                   <div className="eyebrow mb-2">Controls hierarchy · ISO 45001 §8.1.2</div>
                   <div className="space-y-2">
                     {selected.controls.map((c, i) => {
-                      const meta = CONTROL_COLORS[c.type] ?? CONTROL_COLORS.preventive;
+                      const meta = CONTROL_STYLE[c.type] ?? CONTROL_STYLE.preventive;
                       return (
                         <div key={i} className="flex items-start gap-3">
-                          <span
-                            className="text-[9px] font-bold tracking-wider px-1.5 py-1 rounded shrink-0 mt-0.5"
-                            style={{ background: meta.bg, color: meta.fg }}
-                          >
-                            {meta.label}
-                          </span>
-                          <p className="text-xs text-[var(--color-text)] leading-relaxed">
-                            {c.description}
-                          </p>
+                          <span className={`chip ${meta.chip} shrink-0 mt-0.5`}>{meta.label}</span>
+                          <p className="text-[13px] text-[var(--color-ink-2)] leading-[1.55]">{c.description}</p>
                         </div>
                       );
                     })}
@@ -258,20 +204,17 @@ export function RisksTab({ analysis }: { analysis: ProjectAnalysis }) {
                 </div>
               )}
 
-              {/* Mitigation summary */}
-              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-4">
-                <div className="eyebrow text-emerald-400 mb-2">Recommended mitigation</div>
-                <p className="text-sm text-[var(--color-text)] leading-relaxed">
-                  {selected.mitigation}
-                </p>
+              <div className="card-soft p-4" style={{ background: "var(--color-ok-soft)" }}>
+                <div className="eyebrow mb-2" style={{ color: "var(--color-ok)" }}>Recommended mitigation</div>
+                <p className="text-[13.5px] text-[var(--color-ink)] leading-[1.6]">{selected.mitigation}</p>
               </div>
             </div>
           ) : (
             <>
-              <div className="px-5 py-4 border-b border-white/5">
+              <div className="px-5 py-4 border-b border-[var(--color-line)]">
                 <div className="eyebrow">Risk register — click a cell or row to drill in</div>
               </div>
-              <div className="divide-y divide-white/5 max-h-[700px] overflow-auto">
+              <div className="divide-y divide-[var(--color-line)] max-h-[700px] overflow-auto">
                 {sorted.map((r, i) => {
                   const score = r.likelihood * r.impact;
                   const residual =
@@ -281,69 +224,43 @@ export function RisksTab({ analysis }: { analysis: ProjectAnalysis }) {
                   return (
                     <motion.button
                       key={i}
-                      initial={{ opacity: 0, x: 8 }}
+                      initial={{ opacity: 0, x: 6 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.04 }}
+                      transition={{ delay: i * 0.03 }}
                       onClick={() => setSelectedId(`r-${risks.newRisks.indexOf(r)}`)}
-                      className="w-full text-left px-5 py-4 hover:bg-white/[0.025] transition-colors group"
+                      className="w-full text-left px-5 py-3.5 hover:bg-[var(--color-card-soft)] transition-colors group"
                     >
                       <div className="flex items-start gap-3">
                         <div
-                          className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0"
-                          style={{ background: CATEGORY_COLORS[r.category] ?? "#6366F1" }}
+                          className="w-1.5 h-1.5 rounded-full mt-2 shrink-0"
+                          style={{ background: scoreTone(score) }}
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <span className="text-sm font-medium text-[var(--color-text)] truncate">
-                              {r.title}
-                            </span>
-                            <span
-                              className="text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wider shrink-0"
-                              style={{
-                                background: `${CATEGORY_COLORS[r.category] ?? "#6366F1"}15`,
-                                color: CATEGORY_COLORS[r.category] ?? "#6366F1",
-                              }}
-                            >
-                              {r.category}
-                            </span>
+                          <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                            <span className="text-[13.5px] font-medium text-[var(--color-ink)]">{r.title}</span>
+                            <span className="chip">{r.category}</span>
                             {r.isoStandards && r.isoStandards.length > 0 && (
-                              <span className="text-[9px] px-1.5 py-0.5 rounded font-mono bg-indigo-500/15 text-indigo-300 shrink-0">
-                                {r.isoStandards[0].standard.replace(/^ISO /, "ISO ")}
+                              <span className="chip chip-brand">
+                                {r.isoStandards[0].standard}
                                 {r.isoStandards.length > 1 ? ` +${r.isoStandards.length - 1}` : ""}
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-[var(--color-text-muted)] line-clamp-1">
+                          <p className="text-[12.5px] text-[var(--color-ink-3)] line-clamp-1">
                             {r.mitigation}
                           </p>
                         </div>
-                        <div className="flex items-center gap-3 shrink-0 ml-2">
-                          <div className="flex items-center gap-1 font-mono text-xs">
-                            <span
-                              className="font-bold px-2 py-1 rounded-lg"
-                              style={{
-                                background: score >= 12 ? "#EF444420" : score >= 6 ? "#F59E0B20" : "#10B98120",
-                                color: score >= 12 ? "#EF4444" : score >= 6 ? "#F59E0B" : "#10B981",
-                              }}
-                            >
-                              {score}
-                            </span>
-                            {residual !== null && (
-                              <>
-                                <span className="text-[10px] text-[var(--color-text-muted)]">→</span>
-                                <span className="font-bold text-emerald-400">{residual}</span>
-                              </>
-                            )}
-                          </div>
-                          <span
-                            className="text-[10px]"
-                            style={{ color: TREND_COLOR[r.trend] ?? "#9CA3AF" }}
-                          >
-                            {r.trend}
+                        <div className="flex items-center gap-2 shrink-0 ml-2">
+                          <span className={`chip ${scoreChip(score)} font-semibold tabular-nums`}>{score}</span>
+                          {residual !== null && (
+                            <>
+                              <span className="text-[11px] text-[var(--color-ink-4)]">→</span>
+                              <span className="chip chip-ok tabular-nums font-semibold">{residual}</span>
+                            </>
+                          )}
+                          <span className="text-[11px] font-mono" style={{ color: TREND_COLOR[r.trend] }}>
+                            {r.trend[0]}
                           </span>
-                          <svg className="w-3 h-3 text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 16 16" fill="none">
-                            <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                          </svg>
                         </div>
                       </div>
                     </motion.button>
@@ -355,7 +272,6 @@ export function RisksTab({ analysis }: { analysis: ProjectAnalysis }) {
         </motion.div>
       </div>
 
-      {/* Residual risk bars */}
       <ResidualRiskBars risks={risks.newRisks} />
     </div>
   );

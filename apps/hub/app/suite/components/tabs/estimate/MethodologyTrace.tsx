@@ -17,14 +17,14 @@ export function MethodologyTrace({
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-white/8 bg-white/[0.03] p-6"
+      className="card p-6"
     >
       <div className="eyebrow mb-1">How this estimate was derived</div>
-      <p className="text-xs text-[var(--color-text-muted)] mb-5">
+      <p className="text-[12.5px] text-[var(--color-ink-3)] mb-5 leading-[1.55] max-w-3xl">
         Numbered traceable steps from analog selection through contingency setting. Auditable by a senior estimator.
       </p>
 
-      <ol className="relative ml-3 space-y-5 border-l border-white/10 pl-6">
+      <ol className="relative ml-3 space-y-5 border-l border-[var(--color-line-strong)] pl-6">
         {sorted.map((s, i) => (
           <motion.li
             key={s.step}
@@ -34,13 +34,14 @@ export function MethodologyTrace({
             className="relative"
           >
             <div
-              className="absolute -left-[33px] top-0 w-6 h-6 rounded-full bg-[var(--color-bg)] border-2 border-emerald-500/40 flex items-center justify-center text-[10px] font-bold font-mono text-emerald-400"
+              className="absolute -left-[33px] top-0 w-6 h-6 rounded-full grid place-items-center font-mono text-[10px] font-semibold text-white"
+              style={{ background: "var(--color-ink)" }}
             >
               {s.step}
             </div>
             <div>
-              <div className="text-sm font-semibold text-white mb-1">{s.title}</div>
-              <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
+              <div className="text-[13.5px] font-semibold text-[var(--color-ink)] mb-1">{s.title}</div>
+              <p className="text-[12.5px] text-[var(--color-ink-3)] leading-[1.6]">
                 {s.detail}
               </p>
             </div>
@@ -49,7 +50,7 @@ export function MethodologyTrace({
       </ol>
 
       {scaling && scaling.length > 0 && (
-        <div className="mt-6 pt-5 border-t border-white/5">
+        <div className="mt-6 pt-5 border-t border-[var(--color-line)]">
           <div className="eyebrow mb-3">Analog scaling applied</div>
           <div className="space-y-2">
             {scaling.map((a, i) => (
@@ -58,17 +59,13 @@ export function MethodologyTrace({
                 initial={{ opacity: 0, x: -4 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 + i * 0.05 }}
-                className="rounded-xl bg-white/[0.025] p-3"
+                className="card-soft p-3"
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-medium text-white">{a.analogName}</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-mono">
-                    {a.scalingFactor}
-                  </span>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-[12.5px] font-medium text-[var(--color-ink)]">{a.analogName}</span>
+                  <span className="chip chip-ok font-mono tabular-nums">{a.scalingFactor}</span>
                 </div>
-                <p className="text-[11px] text-[var(--color-text-muted)] leading-relaxed">
-                  {a.contribution}
-                </p>
+                <p className="text-[12px] text-[var(--color-ink-3)] leading-[1.55]">{a.contribution}</p>
               </motion.div>
             ))}
           </div>

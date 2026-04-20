@@ -38,30 +38,29 @@ export function ResourceHistogram({
         const pct = (r.totalDays / max) * 100;
         return (
           <div key={r.resource} className="grid grid-cols-[140px_1fr_60px] gap-3 items-center">
-            <div className="text-xs text-[var(--color-text)] truncate" title={r.resource}>
+            <div className="text-[12.5px] text-[var(--color-ink-2)] truncate" title={r.resource}>
               {r.resource}
             </div>
-            <div className="h-5 rounded-md bg-white/[0.04] overflow-hidden relative">
+            <div className="h-5 rounded-md bg-[var(--color-card-soft)] overflow-hidden relative">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${pct}%` }}
                 transition={{ duration: 0.8, delay: 0.05 * i, ease: "easeOut" }}
-                className="h-full rounded-md relative"
+                className="h-full rounded-md"
                 style={{
-                  background: `linear-gradient(90deg, #6366F1, #818CF8)`,
+                  background:
+                    "linear-gradient(90deg, var(--color-brand), color-mix(in srgb, var(--color-brand) 65%, var(--color-accent)))",
                 }}
-              >
-                <div className="absolute inset-0 opacity-30 mix-blend-overlay"
-                  style={{ background: `repeating-linear-gradient(45deg, transparent 0 4px, rgba(255,255,255,0.15) 4px 6px)` }}
-                />
-              </motion.div>
+              />
               {r.peakConcurrency > 1 && (
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono text-white/80">
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono text-white/90">
                   ×{r.peakConcurrency} peak
                 </div>
               )}
             </div>
-            <div className="text-xs font-mono text-right text-[var(--color-text-muted)]">{r.totalDays}d</div>
+            <div className="text-[12px] font-mono text-right text-[var(--color-ink-3)] tabular-nums">
+              {r.totalDays}d
+            </div>
           </div>
         );
       })}

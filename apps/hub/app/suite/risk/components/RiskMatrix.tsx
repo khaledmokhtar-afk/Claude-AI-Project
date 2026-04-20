@@ -36,23 +36,15 @@ export function RiskMatrix({
   const impacts = [1, 2, 3, 4, 5];
 
   return (
-    <div className="glass p-4">
-      <div className="flex items-center justify-between mb-3">
-        <div className="text-xs uppercase tracking-wider text-[var(--color-text-muted)]">
-          Risk Heat Matrix
-        </div>
-        <div className="text-[10px] text-[var(--color-text-muted)] font-mono">L × I</div>
-      </div>
-      <div className="flex gap-2">
-        <div className="flex flex-col justify-around text-[10px] text-[var(--color-text-muted)] font-mono py-2">
-          <div className="h-6">5</div>
-          <div className="h-6">4</div>
-          <div className="h-6">3</div>
-          <div className="h-6">2</div>
-          <div className="h-6">1</div>
+    <div>
+      <div className="flex gap-3">
+        <div className="flex flex-col justify-around text-[10px] text-[var(--color-ink-4)] font-mono py-2 pr-1">
+          {likelihoods.map((n) => (
+            <div key={n} className="h-12 flex items-center">{n}</div>
+          ))}
         </div>
         <div className="flex-1">
-          <div className="grid grid-cols-5 gap-1">
+          <div className="grid grid-cols-5 gap-1.5">
             {likelihoods.map((l) =>
               impacts.map((i) => {
                 const key = `${l}-${i}`;
@@ -61,58 +53,67 @@ export function RiskMatrix({
                 return (
                   <div
                     key={key}
-                    className="relative h-12 rounded"
+                    className="relative h-12 w-12 rounded-md"
                     style={{
-                      background: cell.length
-                        ? color
-                        : "rgba(255,255,255,0.03)",
+                      background: cell.length ? color : "var(--color-card-soft)",
+                      boxShadow: cell.length
+                        ? "inset 0 0 0 1px color-mix(in srgb, var(--color-ink) 6%, transparent)"
+                        : "inset 0 0 0 1px var(--color-line)",
                     }}
                   >
                     <div className="absolute inset-0 flex flex-wrap items-center justify-center gap-1 p-1">
-                      {cell.map((r, idx) => (
-                        <motion.button
-                          key={r.id}
-                          onClick={() => onSelect(r.id)}
-                          className={`w-3 h-3 rounded-full border transition-all ${
-                            r.id === selectedRiskId ? "ring-2 ring-white scale-125" : ""
-                          }`}
-                          initial={{ scale: 0 }}
-                          animate={{ scale: r.id === selectedRiskId ? 1.25 : 1 }}
-                          transition={{ delay: idx * 0.05 }}
-                          style={{
-                            background: r.trend === "Rising"
-                              ? "var(--color-accent)"
-                              : r.trend === "Falling"
-                                ? "var(--color-success)"
-                                : "white",
-                            borderColor: "rgba(0,0,0,0.3)",
-                          }}
-                          title={r.title}
-                        />
-                      ))}
+                      {cell.map((r, idx) => {
+                        const isSel = r.id === selectedRiskId;
+                        const dot =
+                          r.trend === "Rising"
+                            ? "var(--color-bad)"
+                            : r.trend === "Falling"
+                              ? "var(--color-ok)"
+                              : "var(--color-ink)";
+                        return (
+                          <motion.button
+                            key={r.id}
+                            onClick={() => onSelect(r.id)}
+                            className="w-2.5 h-2.5 rounded-full transition-all"
+                            initial={{ scale: 0 }}
+                            animate={{ scale: isSel ? 1.5 : 1 }}
+                            transition={{ delay: idx * 0.04 }}
+                            style={{
+                              background: dot,
+                              boxShadow: isSel
+                                ? "0 0 0 2px var(--color-bg), 0 0 0 3.5px var(--color-ink)"
+                                : "0 0 0 1.5px var(--color-bg)",
+                            }}
+                            title={r.title}
+                          />
+                        );
+                      })}
                     </div>
                   </div>
                 );
               }),
             )}
           </div>
-          <div className="flex text-[10px] text-[var(--color-text-muted)] font-mono mt-1 justify-around">
-            <div>1</div><div>2</div><div>3</div><div>4</div><div>5</div>
+          <div className="flex text-[10px] text-[var(--color-ink-4)] font-mono mt-2 justify-around px-1">
+            {impacts.map((n) => <div key={n}>{n}</div>)}
           </div>
-          <div className="text-[10px] text-center text-[var(--color-text-muted)] mt-1">Impact →</div>
+          <div className="text-[10px] text-center text-[var(--color-ink-4)] mt-1 tracking-[0.15em] uppercase">
+            Impact →
+          </div>
         </div>
       </div>
-      <div className="flex gap-4 mt-3 text-[10px] text-[var(--color-text-muted)]">
+
+      <div className="flex gap-4 mt-5 pt-4 border-t border-[var(--color-line)] text-[11px] text-[var(--color-ink-3)]">
         <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full" style={{ background: "var(--color-accent)" }} />
+          <span className="w-2 h-2 rounded-full" style={{ background: "var(--color-bad)" }} />
           Rising
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-white" />
+          <span className="w-2 h-2 rounded-full" style={{ background: "var(--color-ink)" }} />
           Stable
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full" style={{ background: "var(--color-success)" }} />
+          <span className="w-2 h-2 rounded-full" style={{ background: "var(--color-ok)" }} />
           Falling
         </span>
       </div>

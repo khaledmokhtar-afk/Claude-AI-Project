@@ -12,11 +12,11 @@ import { EstimateTab } from "./tabs/EstimateTab";
 
 type TabId = "overview" | "plan" | "risks" | "estimate";
 
-const TABS: { id: TabId; label: string; dot: string }[] = [
-  { id: "overview",  label: "Overview",           dot: "#818CF8" },
-  { id: "plan",      label: "Plan & Schedule",     dot: "#F59E0B" },
-  { id: "risks",     label: "Risks & Mitigation",  dot: "#EF4444" },
-  { id: "estimate",  label: "Cost & Resources",    dot: "#10B981" },
+const TABS: { id: TabId; label: string }[] = [
+  { id: "overview",  label: "Overview" },
+  { id: "plan",      label: "Plan & Schedule" },
+  { id: "risks",     label: "Risks & Mitigation" },
+  { id: "estimate",  label: "Cost & Resources" },
 ];
 
 export function ProjectDashboard({
@@ -38,123 +38,110 @@ export function ProjectDashboard({
 }) {
   const { projects } = useWorkspace();
   const [tab, setTab] = useState<TabId>("overview");
+  const [historyOpen, setHistoryOpen] = useState(false);
   const otherProjects = projects.filter((p) => p.id !== project.id && p.analysis);
 
   return (
-    <div className="w-full pb-16">
-      {/* Top bar */}
-      <motion.div
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="sticky top-0 z-10 bg-[var(--color-bg)]/90 backdrop-blur border-b border-white/5"
-      >
+    <div className="w-full pb-20">
+      {/* Sticky top bar */}
+      <div className="sticky top-[62px] z-20 bg-[var(--color-bg)]/90 backdrop-blur border-b border-[var(--color-line)]">
         <div className="max-w-[1400px] mx-auto px-4 md:px-8">
           {/* Project header */}
-          <div className="flex items-center justify-between gap-4 flex-wrap py-4">
+          <div className="flex items-center justify-between gap-4 flex-wrap py-5">
             <div className="min-w-0 flex-1">
-              <div className="eyebrow mb-1">
-                {new Date(project.createdAt).toLocaleDateString("en-GB", {
-                  day: "numeric", month: "short", year: "numeric",
-                })}
-                {project.meta.sector && ` · ${project.meta.sector}`}
-                {project.meta.scale && ` · ${project.meta.scale}`}
+              <div className="flex items-center gap-2 mb-1.5 text-[11px] font-mono uppercase tracking-[0.12em] text-[var(--color-ink-4)]">
+                <span>
+                  {new Date(project.createdAt).toLocaleDateString("en-GB", {
+                    day: "numeric", month: "short", year: "numeric",
+                  })}
+                </span>
+                {project.meta.sector && <><span>·</span><span>{project.meta.sector}</span></>}
+                {project.meta.scale && <><span>·</span><span>{project.meta.scale}</span></>}
+                {project.meta.horizon && <><span>·</span><span>{project.meta.horizon}</span></>}
               </div>
-              <h1 className="font-display text-xl md:text-2xl truncate text-white leading-tight">
+              <h1 className="font-display text-[28px] md:text-[34px] leading-[1.08] tracking-[-0.02em] text-[var(--color-ink)] truncate">
                 {analysis.projectName}
               </h1>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
               {otherProjects.length > 0 && onPickPrevious && (
-                <div className="relative group">
-                  <button className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border border-white/10 hover:border-white/20 text-[var(--color-text-muted)] hover:text-white transition-all">
-                    <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
-                      <path d="M1 6h10M1 3h10M1 9h6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                <div className="relative">
+                  <button
+                    onClick={() => setHistoryOpen((v) => !v)}
+                    onBlur={() => setTimeout(() => setHistoryOpen(false), 140)}
+                    className="btn-ghost"
+                  >
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 14 14" fill="none">
+                      <path d="M1 7h12M1 4h12M1 10h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
                     </svg>
                     History
                   </button>
-                  <div className="absolute right-0 top-full mt-1.5 w-64 rounded-xl border border-white/10 bg-[#0B0F1A] shadow-2xl overflow-hidden opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all duration-150 z-50">
-                    {otherProjects.slice(0, 5).map((p) => (
-                      <button
-                        key={p.id}
-                        onClick={() => onPickPrevious(p.id)}
-                        className="w-full text-left px-4 py-3 text-sm hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
-                      >
-                        <div className="font-medium text-white truncate">{p.title}</div>
-                        <div className="text-xs text-[var(--color-text-muted)] mt-0.5">{p.meta.sector ?? "No sector"}</div>
-                      </button>
-                    ))}
-                  </div>
+                  {historyOpen && (
+                    <div className="absolute right-0 top-full mt-1.5 w-72 card-elev overflow-hidden z-50">
+                      {otherProjects.slice(0, 5).map((p) => (
+                        <button
+                          key={p.id}
+                          onMouseDown={() => onPickPrevious(p.id)}
+                          className="w-full text-left px-4 py-3 text-[13px] hover:bg-[var(--color-card-soft)] transition-colors border-b border-[var(--color-line)] last:border-0"
+                        >
+                          <div className="font-medium text-[var(--color-ink)] truncate">{p.title}</div>
+                          <div className="text-[11px] text-[var(--color-ink-4)] mt-0.5 font-mono">
+                            {p.meta.sector ?? "No sector"}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
               <button
                 onClick={onRegenerate}
                 disabled={isRegenerating}
-                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border border-white/10 hover:border-white/20 text-[var(--color-text-muted)] hover:text-white transition-all disabled:opacity-40"
+                className="btn-ghost"
               >
                 {isRegenerating ? (
-                  <span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
+                  <span className="w-3.5 h-3.5 border-2 border-[var(--color-line-strong)] border-t-[var(--color-ink)] rounded-full spin-slow" />
                 ) : (
-                  <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
-                    <path d="M2 6a4 4 0 017-2.65M10 6a4 4 0 01-7 2.65" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-                    <path d="M9.5 1.5v3h-3M2.5 10.5v-3h3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 14 14" fill="none">
+                    <path d="M2 7a5 5 0 019-3M12 7a5 5 0 01-9 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                    <path d="M11 1v3h-3M3 13v-3h3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 )}
                 Regenerate
               </button>
-              <button
-                onClick={onNew}
-                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg text-white transition-all"
-                style={{ background: "linear-gradient(135deg, #6366F1, #10B981)" }}
-              >
-                <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
-                  <path d="M6 2v8M2 6h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <button onClick={onNew} className="btn-primary">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 14 14" fill="none">
+                  <path d="M7 2v10M2 7h10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
                 </svg>
                 New project
               </button>
             </div>
           </div>
 
-          {/* Tab bar */}
-          <div className="flex items-center gap-0 overflow-x-auto">
-            {TABS.map((t) => {
-              const active = t.id === tab;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
-                  className={`relative flex items-center gap-2 px-5 py-3 text-sm font-medium transition-colors shrink-0 border-b-2 ${
-                    active
-                      ? "text-white border-transparent"
-                      : "text-[var(--color-text-muted)] hover:text-[var(--color-text)] border-transparent"
-                  }`}
-                >
-                  <div
-                    className="w-2 h-2 rounded-full shrink-0"
-                    style={{ background: active ? t.dot : "rgba(255,255,255,0.2)" }}
-                  />
-                  {t.label}
-                  {active && (
-                    <motion.div
-                      layoutId="tab-indicator"
-                      className="absolute bottom-[-1px] left-0 right-0 h-[2px] rounded-t-full"
-                      style={{ background: `linear-gradient(90deg, ${t.dot}, ${t.dot}88)` }}
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    />
-                  )}
-                </button>
-              );
-            })}
+          {/* Tabs */}
+          <div className="flex items-center gap-0 overflow-x-auto -mx-1" role="tablist">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                role="tab"
+                aria-selected={t.id === tab}
+                onClick={() => setTab(t.id)}
+                className="tab shrink-0"
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Tab content */}
-      <div className="max-w-[1400px] mx-auto px-4 md:px-8 pt-8">
+      {/* Content */}
+      <div className="max-w-[1400px] mx-auto px-4 md:px-8 pt-10">
         <AnimatePresence mode="wait">
           <motion.div
             key={tab}
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.2 }}
